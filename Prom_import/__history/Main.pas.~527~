@@ -45,6 +45,7 @@ type
     function CaseNumber(k:integer):char;
     procedure FillMapping;
     function PrintPromText(pRemText:array of string):string;
+    procedure CopyMemoToXLS;
 
   public
     { Public declarations }
@@ -63,7 +64,7 @@ end;
 
 procedure TFormMain.BitBtnXLSClick(Sender: TObject);
 var F:TextFile;
-Excel, exclplctn1,WorkBk, WorkSheet : Variant;
+Excel: Variant;
 ExcelOut:Variant;
 FString:string;
 PrintText:string;
@@ -78,6 +79,7 @@ begin
 //if FileOpenDialog1.Execute then
 //  begin
     try
+    try
     //проверяем, нет ли запущенного Excel
     Excel := GetActiveOleObject('Excel.Application');
     except
@@ -85,7 +87,7 @@ begin
     on EOLESysError do
       Excel := CreateOleObject('Excel.Application');
     end;
-   Excel.Visible := True;
+    Excel.Visible := True;
     //Открывать Excel на полный экран
     Excel.WindowState := -4137;
     //не показывать предупреждающие сообщения
@@ -95,26 +97,14 @@ begin
     Excel.WorkBooks.Open('D:\ost.xls', 0 , true);
     //Excel.Visible := False;
     Excel.WorkSheets[1].Activate;
-    try
-    //проверяем, нет ли запущенного Excel
-    ExcelOut:= GetActiveOleObject('Excel.Application');
-    except
-    //если нет, то запускаем
-    on EOLESysError do
-      ExcelOut:= CreateOleObject('Excel.Application');
-    end;
-    try
-    ExcelOut.Visible := True;
-    ExcelOut.WindowState := -4137;
-    Excel.DisplayAlerts := False;
-    ExcelOut.WorkBooks.Add;
-    ExcelOut.WorkSheets[1].Activate;
+
     MemoTxt.Clear;
     MemoTxt.Lines.Add(WritePromHeaders);
-    ExcelOut.Range['A1']:=PromHeader[1];
+ //   ExcelOut.Range['A1']:=PromHeader[1];
     for I := 2 to Length(PromHeader) do
      begin
-        ExcelOut.Range['A'+IntToStr(i)]:=PromHeader[i];
+     //   ExcelOut.Range['A'+IntToStr(i)]:=PromHeader[i];
+     ;
       end;
     LineNumber:=1;
     for I := 1 to length(RemontkaHeader)-1 do
@@ -156,7 +146,7 @@ begin
     end;
     ;
     try
-    ExcelOut.SaveAs('D:\prom_ost.xls');
+    //ExcelOut.SaveAs('D:\prom_ost.xls');
     except on E:EFCreateError do
      begin
      MessageDlg('Прайс-лист открыт в программе Excel, или сбой работы этой программы. Закройте Excel либо перезагрузите компьютер', mtError, [mbOK],0);
@@ -165,8 +155,28 @@ begin
     finally
       Excel.ActiveWorkbook.Close;
       Excel.Application.Quit;
-      ExcelOut.ActiveWorkbook.Close;
-      ExcelOut.Application.Quit;
+    end;
+    try
+    try
+    //проверяем, нет ли запущенного Excel
+    ExcelOut:= GetActiveOleObject('Excel.Application');
+    except
+    //если нет, то запускаем
+    on EOLESysError do
+      ExcelOut:= CreateOleObject('Excel.Application');
+    end;
+    ExcelOut.Visible := True;
+    //Открывать Excel на полный экран
+    ExcelOut.WindowState := -4137;
+    //не показывать предупреждающие сообщения
+    ExcelOut.DisplayAlerts := False;
+    //Открываем рабочую книгу
+    ExcelOut.WorkBooks.Add;
+    ExcelOut.WorkSheets[1].Activate;
+    CopyMemoToXLS;
+    finally
+     ExcelOut.ActiveWorkbook.Close;
+     ExcelOut.Application.Quit;
     end;
 //  end;
 end;
@@ -186,6 +196,25 @@ case k of
       10: Result:='J';
       11: Result:='K';
       12: Result:='L';
+end;
+end;
+
+procedure TFormMain.CopyMemoToXLS;
+var LinesCount, ItemsCntr, where:integer;
+LineStr, CellStr:string;
+begin
+LinesCount:=MemoTxt.Lines.Count;
+MemoLog.Lines.Add(IntToStr(LinesCount));
+LineStr:=MemoTxt.Lines[0];
+ItemsCntr:=0;
+while Pos(FileSeparator,LineStr)>0 do
+begin
+  inc(ItemsCntr);
+  if ItemsCntr>2 then break;
+  where:= Pos(FileSeparator,LineStr);
+  CellStr:=Copy(LineStr,1,where);
+  LineStr:=Copy(LineStr,where+1,length(LineStr));
+  MemoLog.Lines.Add(CellStr+'"+"'+LineStr);
 end;
 end;
 
