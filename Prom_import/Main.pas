@@ -22,7 +22,7 @@ type
     RemontkaNumber:integer;
 end;
 
-
+type PriceRec= array [1..22] of string;
 type
   TFormMain = class(TForm)
     MemoTxt: TMemo;
@@ -39,6 +39,7 @@ type
     { Private declarations }
     Mapping:array [1..22] of Mapping_rec;
     RemontkaText:array[1..22] of string;
+
     function isRemontkaHeaderCorrect(Where:integer; Value:string):boolean;
     function WritePromHeaders:string;
     function WriteRemontkaHeader: string;
@@ -68,12 +69,13 @@ var F:TextFile;
 Excel: Variant;
 ExcelOut:Variant;
 FString:string;
-PrintText:string;
+PrintText, PriceLine:string;
 FileName1, FileName2:string;
 IsEmptyLine:boolean;
 CellText, CellNum, CellRow:string;
 LineNumber:integer;
-  I: Integer;
+I, PriceCntr: Integer;
+Price:array of PriceRec;
 begin
 //Ветка создания XLS
 
@@ -101,11 +103,13 @@ begin
 
     MemoTxt.Clear;
     MemoTxt.Lines.Add(WritePromHeaders);
- //   ExcelOut.Range['A1']:=PromHeader[1];
-    for I := 2 to Length(PromHeader) do
-     begin
-     //   ExcelOut.Range['A'+IntToStr(i)]:=PromHeader[i];
-     ;
+    PriceCntr:=1;
+    SetLength(Price,PriceCntr+1);
+    PriceLine:='';
+    for I := 1 to Length(PromHeader) do
+      begin
+       Price[1,i]:=PromHeader[i];
+       PriceLine:=PriceLine+Price[1,i]+FileSeparator;
       end;
     LineNumber:=1;
     for I := 1 to length(RemontkaHeader)-1 do
@@ -129,21 +133,28 @@ begin
     while not IsEmptyLine do
       begin
       PrintText:='';
+      inc(PriceCntr);
+      SetLength(Price,PriceCntr+1);
+      for I := 1 to 22 do Price[PriceCntr, i]:='';
       for I := 1 to 12 do
         begin
         CellRow:=caseNumber(i);
         CellNum:=IntToStr(LineNumber);
         CellText:=trim(Excel.Range[CellRow+CellNum]);
         if (CellRow='A') and (length(CellText)=0) then IsEmptyLine:=true;
-        //if (CellRow ='A')
-        //  then PrintLine:=dd CellText
-        //  else PrintLine:=PrintLine+File_Separator+CellText;
-        //RemontkaText[i]:='Line '+IntToStr(LineNumber)+';I='+IntToStr(I)+'-'+CellRow+CelNum+'='+CellText;
         RemontkaText[i]:=CellText;
-        if LineNumber>50 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
+        Price[PriceCntr, i]:=CellText;
+        if LineNumber>10 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
       end;
-    if not IsEmptyLine then MemoTxt.Lines.Add(PrintPromText(RemontkaText));
-    inc(LineNumber);
+      if not IsEmptyLine then
+      begin
+      MemoTxt.Lines.Add(PrintPromText(RemontkaText));
+      //PriceLine:='';
+      //for i:=1 to 22 do PriceLine:=PriceLine+Price[PriceCntr, i]+FileSeparator;
+
+      end;
+      //MemoTxt.Lines.Add(PriceLine);
+       inc(LineNumber);
     end;
     ;
     try
