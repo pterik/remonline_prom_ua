@@ -2,10 +2,10 @@
 <BorlandProject>
 	<Transactions>
     <Transaction>1899.12.30 00:00:00.000.686,=C:\Users\vital\OneDrive\Мои документы\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
-    <Transaction>1899.12.30 00:00:00.000.712,C:\Users\vital\OneDrive\Мои документы\Embarcadero\Studio\Projects\Unit2.dfm=D:\Projects\remonline_prom_ua\Prom_import\Main.dfm</Transaction>
-    <Transaction>1899.12.30 00:00:00.000.731,C:\Users\vital\OneDrive\Мои документы\Embarcadero\Studio\Projects\Project1.dproj=D:\Projects\remonline_prom_ua\Prom_import\Prom_import.dproj</Transaction>
-    <Transaction>1899.12.30 00:00:00.000.712,C:\Users\vital\OneDrive\Мои документы\Embarcadero\Studio\Projects\Unit2.pas=D:\Projects\remonline_prom_ua\Prom_import\Main.pas</Transaction>
+    <Transaction>1899.12.30 00:00:00.000.712,D:\Projects\remonline_prom_ua\Prom_import\Main.pas=C:\Users\vital\OneDrive\Мои документы\Embarcadero\Studio\Projects\Unit2.pas</Transaction>
+    <Transaction>1899.12.30 00:00:00.000.731,D:\Projects\remonline_prom_ua\Prom_import\Prom_import.dproj=C:\Users\vital\OneDrive\Мои документы\Embarcadero\Studio\Projects\Project1.dproj</Transaction>
     <Transaction>1899.12.30 00:00:00.000.148,=C:\Users\vital\OneDrive\Мои документы\Embarcadero\Studio\Projects\Unit2.pas</Transaction>
-    <Transaction>1899.12.30 00:00:00.000.805,D:\Projects\remonline_prom_ua\Prom_import\Prom_import.dproj=D:\Projects\remonline_prom_ua\Prom_import\Prom_ETL.dproj</Transaction>
+    <Transaction>1899.12.30 00:00:00.000.805,D:\Projects\remonline_prom_ua\Prom_import\Prom_ETL.dproj=D:\Projects\remonline_prom_ua\Prom_import\Prom_import.dproj</Transaction>
+    <Transaction>1899.12.30 00:00:00.000.712,D:\Projects\remonline_prom_ua\Prom_import\Main.dfm=C:\Users\vital\OneDrive\Мои документы\Embarcadero\Studio\Projects\Unit2.dfm</Transaction>
   </Transactions>
 </BorlandProject>

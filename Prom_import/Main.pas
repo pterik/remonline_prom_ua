@@ -1,3 +1,83 @@
+{$A8,B-,C+,D+,E-,F-,G+,H+,I+,J-,K-,L+,M-,N-,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
+{$MINSTACKSIZE $00004000}
+{$MAXSTACKSIZE $00100000}
+{$IMAGEBASE $00400000}
+{$APPTYPE GUI}
+{$WARN SYMBOL_DEPRECATED ON}
+{$WARN SYMBOL_LIBRARY ON}
+{$WARN SYMBOL_PLATFORM ON}
+{$WARN SYMBOL_EXPERIMENTAL ON}
+{$WARN UNIT_LIBRARY ON}
+{$WARN UNIT_PLATFORM ON}
+{$WARN UNIT_DEPRECATED ON}
+{$WARN UNIT_EXPERIMENTAL ON}
+{$WARN HRESULT_COMPAT ON}
+{$WARN HIDING_MEMBER ON}
+{$WARN HIDDEN_VIRTUAL ON}
+{$WARN GARBAGE ON}
+{$WARN BOUNDS_ERROR ON}
+{$WARN ZERO_NIL_COMPAT ON}
+{$WARN STRING_CONST_TRUNCED ON}
+{$WARN FOR_LOOP_VAR_VARPAR ON}
+{$WARN TYPED_CONST_VARPAR ON}
+{$WARN ASG_TO_TYPED_CONST ON}
+{$WARN CASE_LABEL_RANGE ON}
+{$WARN FOR_VARIABLE ON}
+{$WARN CONSTRUCTING_ABSTRACT ON}
+{$WARN COMPARISON_FALSE ON}
+{$WARN COMPARISON_TRUE ON}
+{$WARN COMPARING_SIGNED_UNSIGNED ON}
+{$WARN COMBINING_SIGNED_UNSIGNED ON}
+{$WARN UNSUPPORTED_CONSTRUCT ON}
+{$WARN FILE_OPEN ON}
+{$WARN FILE_OPEN_UNITSRC ON}
+{$WARN BAD_GLOBAL_SYMBOL ON}
+{$WARN DUPLICATE_CTOR_DTOR ON}
+{$WARN INVALID_DIRECTIVE ON}
+{$WARN PACKAGE_NO_LINK ON}
+{$WARN PACKAGED_THREADVAR ON}
+{$WARN IMPLICIT_IMPORT ON}
+{$WARN HPPEMIT_IGNORED ON}
+{$WARN NO_RETVAL ON}
+{$WARN USE_BEFORE_DEF ON}
+{$WARN FOR_LOOP_VAR_UNDEF ON}
+{$WARN UNIT_NAME_MISMATCH ON}
+{$WARN NO_CFG_FILE_FOUND ON}
+{$WARN IMPLICIT_VARIANTS ON}
+{$WARN UNICODE_TO_LOCALE ON}
+{$WARN LOCALE_TO_UNICODE ON}
+{$WARN IMAGEBASE_MULTIPLE ON}
+{$WARN SUSPICIOUS_TYPECAST ON}
+{$WARN PRIVATE_PROPACCESSOR ON}
+{$WARN UNSAFE_TYPE OFF}
+{$WARN UNSAFE_CODE OFF}
+{$WARN UNSAFE_CAST OFF}
+{$WARN OPTION_TRUNCATED ON}
+{$WARN WIDECHAR_REDUCED ON}
+{$WARN DUPLICATES_IGNORED ON}
+{$WARN UNIT_INIT_SEQ ON}
+{$WARN LOCAL_PINVOKE ON}
+{$WARN MESSAGE_DIRECTIVE ON}
+{$WARN TYPEINFO_IMPLICITLY_ADDED ON}
+{$WARN RLINK_WARNING ON}
+{$WARN IMPLICIT_STRING_CAST ON}
+{$WARN IMPLICIT_STRING_CAST_LOSS ON}
+{$WARN EXPLICIT_STRING_CAST OFF}
+{$WARN EXPLICIT_STRING_CAST_LOSS OFF}
+{$WARN CVT_WCHAR_TO_ACHAR ON}
+{$WARN CVT_NARROWING_STRING_LOST ON}
+{$WARN CVT_ACHAR_TO_WCHAR ON}
+{$WARN CVT_WIDENING_STRING_LOST ON}
+{$WARN NON_PORTABLE_TYPECAST ON}
+{$WARN XML_WHITESPACE_NOT_ALLOWED ON}
+{$WARN XML_UNKNOWN_ENTITY ON}
+{$WARN XML_INVALID_NAME_START ON}
+{$WARN XML_INVALID_NAME ON}
+{$WARN XML_EXPECTED_CHARACTER ON}
+{$WARN XML_CREF_NO_RESOLVE ON}
+{$WARN XML_NO_PARM ON}
+{$WARN XML_NO_MATCHING_PARM ON}
+{$WARN IMMUTABLE_STRINGS OFF}
 unit Main;
 
 interface
@@ -43,11 +123,10 @@ type
     function isRemontkaHeaderCorrect(Where:integer; Value:string):boolean;
     function WritePromHeaders:string;
     function WriteRemontkaHeader: string;
-    function CaseNumber(k:integer):char;
+    function CaseNumber(k:integer):string;
     procedure FillMapping;
     function PrintPromText(pRemText:array of string):string;
-    procedure CopyMemoToXLS;
-    procedure CopyLinetoXLS(var LineStr:string);
+    procedure CopyMemoToXLS(FileName:string);
 
   public
     { Public declarations }
@@ -65,135 +144,83 @@ Close;
 end;
 
 procedure TFormMain.BitBtnXLSClick(Sender: TObject);
-var F:TextFile;
-Excel: Variant;
-ExcelOut:Variant;
+var FileName:string;
+ExcelIn: Variant;
+//ExcelOut:Variant;
 FString:string;
-PrintText, PriceLine:string;
+PrintText:string;
 FileName1, FileName2:string;
 IsEmptyLine:boolean;
 CellText, CellNum, CellRow:string;
 LineNumber:integer;
-I, PriceCntr: Integer;
-Price:array of PriceRec;
+I: Integer;
 begin
 //Ветка создания XLS
-
-//if FileOpenDialog1.Execute then
-//  begin
+if FileOpenDialog1.Execute then
+begin
     try
-    try
-    //проверяем, нет ли запущенного Excel
-    Excel := GetActiveOleObject('Excel.Application');
-    except
-    //если нет, то запускаем
-    on EOLESysError do
-      Excel := CreateOleObject('Excel.Application');
-    end;
-    Excel.Visible := True;
-    //Открывать Excel на полный экран
-    Excel.WindowState := -4137;
-    //не показывать предупреждающие сообщения
-    Excel.DisplayAlerts := False;
-    //Открываем рабочую книгу
-    //Excel.WorkBooks.Open(FileOpenDialog1.FileName, 0 , true);
-    Excel.WorkBooks.Open('D:\ost.xls', 0 , true);
-    //Excel.Visible := False;
-    Excel.WorkSheets[1].Activate;
-
-    MemoTxt.Clear;
-    MemoTxt.Lines.Add(WritePromHeaders);
-    PriceCntr:=1;
-    SetLength(Price,PriceCntr+1);
-    PriceLine:='';
-    for I := 1 to Length(PromHeader) do
-      begin
-       Price[1,i]:=PromHeader[i];
-       PriceLine:=PriceLine+Price[1,i]+FileSeparator;
+      try
+       ExcelIn := GetActiveOleObject('Excel.Application');
+       except on EOLESysError do
+       ExcelIn := CreateOleObject('Excel.Application');
       end;
-    LineNumber:=1;
-    for I := 1 to length(RemontkaHeader)-1 do
-    begin
-      CellRow:=caseNumber(i);
-      CellNum:='1';
-      CellText:=Trim(Excel.Range[CellRow+CellNum]);
-      if not isRemontkaHeaderCorrect(i, CellText) then
+      ExcelIn.Visible := False;
+      ExcelIn.WindowState := -4137;
+      ExcelIn.DisplayAlerts := False;
+      ExcelIn.WorkBooks.Open(FileOpenDialog1.FileName, 0 , true);
+      ExcelIn.WorkSheets[1].Activate;
+      MemoTxt.Clear;
+      MemoTxt.Lines.Add(WritePromHeaders);
+      LineNumber:=1;
+      for I := 1 to length(RemontkaHeader)-1 do
+      begin
+        CellRow:=caseNumber(i);
+        CellNum:='1';
+        CellText:=Trim(ExcelIn.Range[CellRow+CellNum]);
+        if not isRemontkaHeaderCorrect(i, CellText) then
           begin
-            MemoTxt.Lines.Add('Неверный заголовок файла, проведите выгрузку "Остатки на складе.xls" из remonline ещё раз '
+            MemoLog.Lines.Add('Неверный заголовок файла, проведите выгрузку "Остатки на складе.xls" из remonline ещё раз     '
                                 +CellRow+CellNum+'!'+'!'+CellText);
-            Excel.ActiveWorkbook.Close;
-            Excel.Application.Quit;
-            break;
+            ShowMessage('Неверный файл остатоков, он создан нажатием на кнопку "Создать отчёт"'+chr(10)+chr(13)
+                          +'Зайдите на сайт remonline ещё раз и выгрузите файл остатков с помощью "бутерброда"'+chr(10)+chr(13)
+                          +'Выберите вкладку "Склад", бутерброд(три полоски) находится возле Строки "Наличие"');
+            //ExcelIn.ActiveWorkbook.Close;
+            //ExcelIn.Application.Quit;
+            exit;
           end;
-    end;
-    //CelNum:='2';
-    //CellText:=Trim(Excel.Range['A'+CelNum]);
-    LineNumber:=2;
-    isEmptyLine:=false;
-    while not IsEmptyLine do
+      end;
+      LineNumber:=2;
+      isEmptyLine:=false;
+      while not IsEmptyLine do
       begin
       PrintText:='';
-      inc(PriceCntr);
-      SetLength(Price,PriceCntr+1);
-      for I := 1 to 22 do Price[PriceCntr, i]:='';
       for I := 1 to 12 do
         begin
         CellRow:=caseNumber(i);
         CellNum:=IntToStr(LineNumber);
-        CellText:=trim(Excel.Range[CellRow+CellNum]);
+        CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
         if (CellRow='A') and (length(CellText)=0) then IsEmptyLine:=true;
         RemontkaText[i]:=CellText;
-        Price[PriceCntr, i]:=CellText;
         if LineNumber>10 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
       end;
       if not IsEmptyLine then
       begin
       MemoTxt.Lines.Add(PrintPromText(RemontkaText));
-      //PriceLine:='';
-      //for i:=1 to 22 do PriceLine:=PriceLine+Price[PriceCntr, i]+FileSeparator;
-
-      end;
-      //MemoTxt.Lines.Add(PriceLine);
+       end;
        inc(LineNumber);
-    end;
-    ;
-    try
-    //ExcelOut.SaveAs('D:\prom_ost.xls');
-    except on E:EFCreateError do
-     begin
-     MessageDlg('Прайс-лист открыт в программе Excel, или сбой работы этой программы. Закройте Excel либо перезагрузите компьютер', mtError, [mbOK],0);
-    end;
-    end;
+      end;
     finally
-      Excel.ActiveWorkbook.Close;
-      Excel.Application.Quit;
+      ExcelIn.ActiveWorkbook.Close;
+      ExcelIn.Application.Quit;
     end;
-    try
-    try
-    //проверяем, нет ли запущенного Excel
-    ExcelOut:= GetActiveOleObject('Excel.Application');
-    except
-    //если нет, то запускаем
-    on EOLESysError do
-      ExcelOut:= CreateOleObject('Excel.Application');
-    end;
-    ExcelOut.Visible := True;
-    //Открывать Excel на полный экран
-    ExcelOut.WindowState := -4137;
-    //не показывать предупреждающие сообщения
-    ExcelOut.DisplayAlerts := False;
-    //Открываем рабочую книгу
-    ExcelOut.WorkBooks.Add;
-    ExcelOut.WorkSheets[1].Activate;
-    CopyMemoToXLS;
-    finally
-     ExcelOut.ActiveWorkbook.Close;
-     ExcelOut.Application.Quit;
-    end;
-//  end;
+  FileName:=FileOpenDialog1.FileName;
+  if LowerCase(ExtractFileExt(FileName))='.xls' then FileName:=LowerCase(FileName+'x');
+  CopyMemoToXLS(ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName));
+  MemoLog.Lines.Add('Прайс готов для загрузки: '+ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName));
+  end;
 end;
 
-function TFormMain.CaseNumber(k: integer): char;
+function TFormMain.CaseNumber(k: integer): string;
 begin
 case k of
       1: Result:='A';
@@ -208,33 +235,94 @@ case k of
       10: Result:='J';
       11: Result:='K';
       12: Result:='L';
+      13: Result:='M';
+      14: Result:='N';
+      15: Result:='O';
+      16: Result:='P';
+      17: Result:='Q';
+      18: Result:='R';
+      19: Result:='S';
+      20: Result:='T';
+      21: Result:='U';
+      22: Result:='V';
+      23: Result:='W';
+      24: Result:='X';
+      25: Result:='Y';
+      26: Result:='Z';
+      27: Result:='AA';
+      28: Result:='AB';
+      29: Result:='AC';
+      30: Result:='AD';
+      31: Result:='AE';
+      32: Result:='AF';
+      33: Result:='AG';
+      34: Result:='AH';
+      35: Result:='AI';
+      36: Result:='AJ';
+      37: Result:='AK';
+      38: Result:='AL';
+      39: Result:='AM';
+      40: Result:='AN';
+      else Result:='ZZ';
 end;
 end;
 
-procedure TFormMain.CopyLinetoXLS(var LineStr:string);
-var ItemsCntr, where:integer;
-CellStr:string;
-begin
-ItemsCntr:=0;
-while Pos(FileSeparator,LineStr)>0 do
-begin
-  inc(ItemsCntr);
-  if ItemsCntr>100 then break;
-  where:= Pos(FileSeparator,LineStr);
-  CellStr:=Copy(LineStr,1,where-1);
-  LineStr:=Copy(LineStr,where+1,length(LineStr));
-  MemoLog.Lines.Add(CellStr+'"+"'+LineStr);
-end;
-end;
 
-procedure TFormMain.CopyMemoToXLS;
-var LinesCount:integer;
+procedure TFormMain.CopyMemoToXLS(FileName:string);
+var i:integer;
 LineStr:string;
+ItemsCntr, where, LineNumber :integer;
+CellText, CellNum, CellRow:string;
+ExcelOut:Variant;
 begin
-LinesCount:=MemoTxt.Lines.Count;
-MemoLog.Lines.Add(IntToStr(LinesCount));
-LineStr:=MemoTxt.Lines[0];
-CopyLineToXLS(LineStr);
+try
+    //проверяем, нет ли запущенного Excel
+    try
+    ExcelOut := GetActiveOleObject('Excel.Application');
+    except
+    //если нет, то запускаем
+    on EOLESysError do
+      ExcelOut := CreateOleObject('Excel.Application');
+    end;
+    ExcelOut.Visible := False;
+    //Открывать Excel на полный экран
+    ExcelOut.WindowState := -4140;  //-4137
+    //не показывать предупреждающие сообщения
+    ExcelOut.DisplayAlerts := False;
+    ExcelOut.WorkBooks.Add;
+    ExcelOut.WorkSheets[1].Activate;
+    ExcelOut.WorkBooks[1].WorkSheets[1].Name:='Export Products Sheet';
+    MemoLog.Lines.Add(IntToStr(MemoTxt.Lines.Count)+' строк экспортируем в XLS');
+    LineNumber:=1;
+    CellNum:='';
+    CellRow:='';
+    for i:=0 to MemoTxt.Lines.Count-1 do
+      begin
+      LineStr:=MemoTxt.Lines[i];
+      CellNum:=IntToStr(i+1);
+      ItemsCntr:=0;
+      while Pos(FileSeparator,LineStr)>0 do
+        begin
+        inc(ItemsCntr);
+        if ItemsCntr>50 then break;
+        CellRow:=caseNumber(ItemsCntr);
+        where:= Pos(FileSeparator,LineStr);
+        CellText:=Copy(LineStr,1,where-1);
+        LineStr:=Copy(LineStr,where+1,length(LineStr));
+        // MemoLog.Lines.Add(CellText+'"+"'+LineStr);
+        // MemoLog.Lines.Add('Cell="'+CellRow+CellNum+'" ,value="'+CellText+'"');
+        ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(i+1),ItemsCntr].Value:=CellText;
+        end;
+    end;
+    try
+     ExcelOut.WorkBooks[1].SaveAs(FileName);
+    except on E:EFCreateError do
+    MessageDlg('Прайс-лист '+FileName+' открыт в программе Excel, или сбой работы этой программы.'+chr(10)+chr(13)+' Закройте Excel либо перезагрузите компьютер', mtError, [mbOK],0);
+    end;
+  finally
+  ExcelOut.ActiveWorkbook.Close;
+  ExcelOut.Application.Quit;
+  end;
 end;
 
 procedure TFormMain.BitBtnCSVClick(Sender: TObject);
@@ -243,7 +331,7 @@ Excel: Variant;
 FString:string;
 PrintText:string;
 IsEmptyLine:boolean;
-CellText, CelNum, CellRow:string;
+CellText, CellNum, CellRow:string;
 LineNumber:integer;
 I: Integer;
 begin
@@ -259,7 +347,7 @@ begin
     end;
     Excel.Visible := True;
     //Открывать Excel на полный экран
-    Excel.WindowState := -4137;
+    Excel.WindowState := -4140;  //-4137
     //не показывать предупреждающие сообщения
     Excel.DisplayAlerts := False;
     //Открываем рабочую книгу
@@ -273,12 +361,12 @@ begin
     for I := 1 to length(RemontkaHeader)-1 do
     begin
       CellRow:=caseNumber(i);
-      CelNum:='1';
-      CellText:=Trim(Excel.Range[CellRow+CelNum]);
+      CellNum:='1';
+      CellText:=Trim(Excel.Range[CellRow+CellNum]);
       if not isRemontkaHeaderCorrect(i, CellText) then
           begin
             MemoTxt.Lines.Add('Неверный заголовок файла, проведите выгрузку "Остатки на складе.xls" из remonline ещё раз '
-                                +CellRow+CelNum+'!'+'!'+CellText);
+                                +CellRow+CellNum+'!'+'!'+CellText);
             Excel.ActiveWorkbook.Close;
             Excel.Application.Quit;
             break;
@@ -292,8 +380,8 @@ begin
       for I := 1 to 12 do
         begin
         CellRow:=caseNumber(i);
-        CelNum:=IntToStr(LineNumber);
-        CellText:=trim(Excel.Range[CellRow+CelNum]);
+        CellNum:=IntToStr(LineNumber);
+        CellText:=trim(Excel.Range[CellRow+CellNum]);
         if (CellRow='A') and (length(CellText)=0) then IsEmptyLine:=true;
         RemontkaText[i]:=CellText;
         if LineNumber>50 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
@@ -304,7 +392,7 @@ begin
     Excel.ActiveWorkbook.Close;
     Excel.Application.Quit;
     try
-    MemoTxt.Lines.SaveToFile('D:\ost.csv');
+    MemoTxt.Lines.SaveToFile('D:\prom_ost.csv');
     except on E:EFCreateError do
      begin
      MessageDlg('Прайс-лист открыт в программе Excel, или сбой работы этой программы. Закройте Excel либо перезагрузите компьютер', mtError, [mbOK],0);

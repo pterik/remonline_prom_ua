@@ -85,17 +85,18 @@ object FormMain: TFormMain
     OnClick = BitBtnCSVClick
   end
   object FileOpenDialog1: TFileOpenDialog
+    DefaultExtension = '*.xls'
     FavoriteLinks = <>
     FileTypes = <
       item
-        DisplayName = 'Excel 2003'
-        FileMask = '*.xlsx'
-      end
-      item
         DisplayName = 'Excel 95'
         FileMask = '*.xls'
+      end
+      item
+        DisplayName = 'Excel 2003'
+        FileMask = '*.xlsx'
       end>
-    Options = []
+    Options = [fdoPathMustExist, fdoFileMustExist, fdoShareAware]
     Left = 184
     Top = 120
   end
