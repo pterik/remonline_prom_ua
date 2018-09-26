@@ -101,6 +101,7 @@ type
   Mapping_rec = record
     RemontkaName, PromName:string;
     RemontkaNumber:integer;
+    Quoted:boolean;
 end;
 
 type PriceRec= array [1..22] of string;
@@ -129,6 +130,7 @@ type
     function CaseNumber(k:integer):string;
     procedure FillMapping;
     function PrintPromText(pRemText:array of string):string;
+    function PlusQuotes(Str:string; isQuoted:boolean):string;
     procedure CopyMemoToXLS(FileName:string; Lines:integer);
 
   public
@@ -157,6 +159,7 @@ IsEmptyLine:boolean;
 CellText, CellNum, CellRow:string;
 LineNumber:integer;
 I: Integer;
+Kod:string;
 begin
 MemoLog.Clear;
 if FileOpenDialog1.Execute then
@@ -182,7 +185,7 @@ begin
       PB.Max:=300;
       PB.Step:=1;
       PB.StepIt;
-      for I := 1 to length(RemontkaHeader)-1 do
+      for I := 1 to 13 do
       begin
         CellRow:=caseNumber(i);
         CellNum:='1';
@@ -211,6 +214,9 @@ begin
         CellRow:=caseNumber(i);
         CellNum:=IntToStr(LineNumber);
         CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
+        if I=1 then Kod:=CellText;
+        //Добавляем в код ещё и артикул, код оказался не уникальным
+        if I=2 then CellText:=Kod+'-'+Celltext;
         if (CellRow='D') and (length(CellText)=0) then IsEmptyLine:=true;
         RemontkaText[i]:=CellText;
         if LineNumber>50000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
@@ -379,7 +385,7 @@ if FileOpenDialog1.Execute then
     MemoTxt.Clear;
     MemoTxt.Lines.Add(WritePromHeaders);
     LineNumber:=1;
-    for I := 1 to length(RemontkaHeader)-1 do
+    for I := 1 to 13 do
     begin
       CellRow:=caseNumber(i);
       CellNum:='1';
@@ -438,27 +444,49 @@ procedure TFormMain.FillMapping;
 var i:integer;
 begin
 Mapping[1].PromName:= 'Код_товара';
+Mapping[1].Quoted:= true;
 Mapping[2].PromName:= 'Название_позиции';
+Mapping[2].Quoted:= true;
 Mapping[3].PromName:= 'Ключевые_слова';
+Mapping[3].Quoted:= true;
 Mapping[4].PromName:= 'Описание';
+Mapping[4].Quoted:= true;
 Mapping[5].PromName:= 'Тип_товара';
+Mapping[5].Quoted:= true;
 Mapping[6].PromName:= 'Цена';
+Mapping[6].Quoted:= false;
 Mapping[7].PromName:= 'Валюта';
+Mapping[7].Quoted:= false;
 Mapping[8].PromName:= 'Единица_измерения';
+Mapping[8].Quoted:= false;
 Mapping[9].PromName:= 'Минимальный_объем_заказа';
+Mapping[9].Quoted:= false;
 Mapping[10].PromName:= 'Оптовая_цена';
+Mapping[10].Quoted:= false;
 Mapping[11].PromName:= 'Минимальный_заказ_опт';
+Mapping[11].Quoted:= false;
 Mapping[12].PromName:= 'Ссылка_изображения';
+Mapping[12].Quoted:= true;
 Mapping[13].PromName:= 'Наличие';
+Mapping[13].Quoted:= false;
 Mapping[14].PromName:= 'Скидка';
+Mapping[14].Quoted:= false;
 Mapping[15].PromName:= 'Производитель';
+Mapping[15].Quoted:= true;
 Mapping[16].PromName:= 'Страна_производитель';
+Mapping[16].Quoted:= true;
 Mapping[17].PromName:= 'Номер_группы';
+Mapping[17].Quoted:= true;
 Mapping[18].PromName:= 'Адрес_подраздела';
+Mapping[18].Quoted:= false;
 Mapping[19].PromName:= 'Идентификатор_товара';
+Mapping[19].Quoted:= true;
 Mapping[20].PromName:= 'Уникальный_идентификатор';
+Mapping[20].Quoted:= false;
 Mapping[21].PromName:= 'Идентификатор_подраздела';
+Mapping[21].Quoted:= true;
 Mapping[22].PromName:= 'Идентификатор_группы';
+Mapping[22].Quoted:= true;
 Mapping[1].RemontkaName:= 'Код';
 Mapping[2].RemontkaName:= 'Наименование';
 Mapping[3].RemontkaName:= '';
@@ -493,7 +521,7 @@ Mapping[9].RemontkaNumber:=-9;
 Mapping[10].RemontkaNumber:=11-1;
 Mapping[11].RemontkaNumber:=-11;
 Mapping[13].RemontkaNumber:=5-1;
-Mapping[19].RemontkaNumber:=1-1;
+Mapping[19].RemontkaNumber:=2-1;
 //Mapping[22].RemontkaNumber:=6-1;
 Mapping[22].RemontkaNumber:=-999;//Не обрабатываем идентификатор группы
 end;
@@ -511,32 +539,44 @@ end;
 function TFormMain.isRemontkaHeaderCorrect(Where:integer; Value: string): boolean;
  begin
  if trim(Value) = RemontkaHeader[where] then Result:=true else Result:=false;
+ if (where=1) and (Value <>'Код') then Result:=false;
+ if (where=2) and (Value <>'Артикул') then Result:=false;
+end;
+
+function TFormMain.PlusQuotes(Str: string; isQuoted: boolean): string;
+begin
+if isQuoted then Result:='"'+str+'"' else Result:=Str;
 end;
 
 function TFormMain.PrintPromText(pRemText: array of string): string;
 var i, RemNumber:integer;
+Price:Extended;
 begin
 Result:='';
-if (Mapping[1].RemontkaNumber>=0) then Result:=pRemText[Mapping[1].RemontkaNumber];
+if (Mapping[1].RemontkaNumber>=0) then Result:=PlusQuotes(pRemText[Mapping[1].RemontkaNumber],Mapping[i].Quoted);
 for I := 2 to 22 do
   begin
     Result:=Result+FileSeparator;
     RemNumber:=Mapping[i].RemontkaNumber;
-    case RemNumber of
+     case RemNumber of
     -999:;
-    -5: Result:=Result+'u';
-    -7: Result:=Result+'UAH';
-    -8: Result:=Result+'шт.';
-    -9: Result:=Result+'1';
-    -11: Result:=Result+'2';
-    4: begin
-       try
-       if (StrToInt(pRemText[Mapping[i].RemontkaNumber])>0) then Result:=Result+'+' else Result:=Result+'-' ;
+    -5: Result:=Result+PlusQuotes('u',Mapping[i].Quoted);
+    -7: Result:=Result+PlusQuotes('UAH',Mapping[i].Quoted);
+    -8: Result:=Result+PlusQuotes('шт.',Mapping[i].Quoted);
+    -9: Result:=Result+PlusQuotes('1',Mapping[i].Quoted);
+    -11: Result:=Result+PlusQuotes('2',Mapping[i].Quoted);
+    4: if (StrToIntDef(pRemText[Mapping[i].RemontkaNumber],0)>0)
+          then Result:=Result+PlusQuotes('+',Mapping[i].Quoted)
+          else Result:=Result+PlusQuotes('-',Mapping[i].Quoted);
          //Заменяем количество на Наличие + или -
-         except on E:EConvertError do Result:=Result+'-';
-       end;
-    end
-    else Result:=Result+pRemText[Mapping[i].RemontkaNumber];
+    else Result:=Result+PlusQuotes(pRemText[Mapping[i].RemontkaNumber],Mapping[i].Quoted);
+        //Заменяем цену 0 на цену  0.00001
+    if (i=6) or (i=10) then
+      begin
+      Price:=StrToFloatDef(pRemText[Mapping[i].RemontkaNumber],0.00001);
+      if (Price > 0) then Result:=Result+PlusQuotes(FloatToStr(Price),Mapping[i].Quoted)
+      else Result:=Result+PlusQuotes('0.00001',Mapping[i].Quoted);
+      end;
     end;
   end;
  end;
@@ -545,7 +585,7 @@ function TFormMain.WriteRemontkaHeader: string;
   var i:integer;
 begin
 Result:=RemontkaHeader[1];
-for I := 2 to Length(RemontkaHeader) do
+for I := 2 to 13 do
   begin
      Result:= Result+FileSeparator+ RemontkaHeader[i];
   end;
@@ -556,7 +596,7 @@ function TFormMain.WritePromHeaders: string;
 var i:integer;
 begin
 Result:=PromHeader[1];
-for I := 2 to Length(PromHeader) do
+for I := 2 to 22 do
   begin
     Result:=Result+FileSeparator+PromHeader[i];
   end;
