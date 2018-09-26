@@ -84,10 +84,11 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Buttons, ComObj;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Buttons, ComObj,
+  Vcl.ComCtrls;
 
-const RemontkaHeader : array [1..12] of string = ('Код','Артикул','Штрих-код','Наименование','Остаток','Категория','Гарантия',
-                           'Гарантийный период','Закупочная цена','Нулевая','Ремонтная','Розничная');
+const RemontkaHeader : array [1..13] of string = ('Код','Артикул','Штрих-код','Наименование','Остаток','Категория','Гарантия',
+                           'Гарантийный период','Закупочная цена','Нулевая','цена в интернете', 'Розничная','Ремонтная');
 PromHeader : array [1..22] of string = (
       'Код_товара','Название_позиции','Ключевые_слова','Описание','Тип_товара','Цена',
       'Валюта','Единица_измерения','Минимальный_объем_заказа','Оптовая_цена','Минимальный_заказ_опт','Ссылка_изображения',
@@ -111,10 +112,12 @@ type
     FileOpenDialog1: TFileOpenDialog;
     MemoLog: TMemo;
     BitBtnCSV: TBitBtn;
+    PB: TProgressBar;
     procedure BitBtnCloseClick(Sender: TObject);
     procedure BitBtnXLSClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure BitBtnCSVClick(Sender: TObject);
+    procedure FormDblClick(Sender: TObject);
   private
     { Private declarations }
     Mapping:array [1..22] of Mapping_rec;
@@ -126,7 +129,7 @@ type
     function CaseNumber(k:integer):string;
     procedure FillMapping;
     function PrintPromText(pRemText:array of string):string;
-    procedure CopyMemoToXLS(FileName:string);
+    procedure CopyMemoToXLS(FileName:string; Lines:integer);
 
   public
     { Public declarations }
@@ -155,9 +158,11 @@ CellText, CellNum, CellRow:string;
 LineNumber:integer;
 I: Integer;
 begin
-//Ветка создания XLS
+MemoLog.Clear;
 if FileOpenDialog1.Execute then
 begin
+    FileName:=FileOpenDialog1.FileName;
+    MemoLog.Lines.Add('Обрабатывается файл '+FileName);
     try
       try
        ExcelIn := GetActiveOleObject('Excel.Application');
@@ -165,13 +170,18 @@ begin
        ExcelIn := CreateOleObject('Excel.Application');
       end;
       ExcelIn.Visible := False;
-      ExcelIn.WindowState := -4137;
+      ExcelIn.WindowState := -4140;
       ExcelIn.DisplayAlerts := False;
       ExcelIn.WorkBooks.Open(FileOpenDialog1.FileName, 0 , true);
       ExcelIn.WorkSheets[1].Activate;
       MemoTxt.Clear;
       MemoTxt.Lines.Add(WritePromHeaders);
       LineNumber:=1;
+      PB.Position:=0;
+      PB.Min:=1;
+      PB.Max:=300;
+      PB.Step:=1;
+      PB.StepIt;
       for I := 1 to length(RemontkaHeader)-1 do
       begin
         CellRow:=caseNumber(i);
@@ -193,15 +203,17 @@ begin
       isEmptyLine:=false;
       while not IsEmptyLine do
       begin
+      //PB.Max:=LineNumber*2;
+      PB.StepIt;
       PrintText:='';
-      for I := 1 to 12 do
+      for I := 1 to 13 do
         begin
         CellRow:=caseNumber(i);
         CellNum:=IntToStr(LineNumber);
         CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
-        if (CellRow='A') and (length(CellText)=0) then IsEmptyLine:=true;
+        if (CellRow='D') and (length(CellText)=0) then IsEmptyLine:=true;
         RemontkaText[i]:=CellText;
-        if LineNumber>10 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
+        if LineNumber>50000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
       end;
       if not IsEmptyLine then
       begin
@@ -213,10 +225,11 @@ begin
       ExcelIn.ActiveWorkbook.Close;
       ExcelIn.Application.Quit;
     end;
-  FileName:=FileOpenDialog1.FileName;
+
   if LowerCase(ExtractFileExt(FileName))='.xls' then FileName:=LowerCase(FileName+'x');
-  CopyMemoToXLS(ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName));
+  CopyMemoToXLS(ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName), LineNumber);
   MemoLog.Lines.Add('Прайс готов для загрузки: '+ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName));
+  Pb.Position:=PB.Max;
   end;
 end;
 
@@ -268,13 +281,16 @@ end;
 end;
 
 
-procedure TFormMain.CopyMemoToXLS(FileName:string);
+procedure TFormMain.CopyMemoToXLS(FileName:string; Lines:integer);
 var i:integer;
 LineStr:string;
 ItemsCntr, where, LineNumber :integer;
 CellText, CellNum, CellRow:string;
 ExcelOut:Variant;
 begin
+//PB.Max:=Lines*2;
+//PB.Position:=Lines;
+PB.StepIt;
 try
     //проверяем, нет ли запущенного Excel
     try
@@ -313,6 +329,7 @@ try
         // MemoLog.Lines.Add('Cell="'+CellRow+CellNum+'" ,value="'+CellText+'"');
         ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(i+1),ItemsCntr].Value:=CellText;
         end;
+    PB.StepIt;
     end;
     try
      ExcelOut.WorkBooks[1].SaveAs(FileName);
@@ -327,6 +344,8 @@ end;
 
 procedure TFormMain.BitBtnCSVClick(Sender: TObject);
 var F:TextFile;
+FileName:string;
+CsvFileName:string;
 Excel: Variant;
 FString:string;
 PrintText:string;
@@ -335,26 +354,28 @@ CellText, CellNum, CellRow:string;
 LineNumber:integer;
 I: Integer;
 begin
-//if FileOpenDialog1.Execute then
-//begin
+MemoLog.Clear;
+if FileOpenDialog1.Execute then
+  begin
+    FileName:=FileOpenDialog1.FileName;
+    MemoLog.Lines.Add('Обрабатывается файл '+FileName);
     try
-    //проверяем, нет ли запущенного Excel
-    Excel := GetActiveOleObject('Excel.Application');
-    except
-    //если нет, то запускаем
+    try
+     Excel := GetActiveOleObject('Excel.Application');
+     except
     on EOLESysError do
       Excel := CreateOleObject('Excel.Application');
     end;
-    Excel.Visible := True;
-    //Открывать Excel на полный экран
+    Excel.Visible := false;
     Excel.WindowState := -4140;  //-4137
-    //не показывать предупреждающие сообщения
     Excel.DisplayAlerts := False;
-    //Открываем рабочую книгу
-    //Excel.WorkBooks.Open(FileOpenDialog1.FileName, 0 , true);
-    Excel.WorkBooks.Open('D:\ost.xls', 0 , true);
-    //Excel.Visible := False;
+    Excel.WorkBooks.Open(FileName, 0 , true);
     Excel.WorkSheets[1].Activate;
+    PB.Position:=0;
+    PB.Min:=1;
+    PB.Max:=300;
+    PB.Step:=1;
+    PB.StepIt;
     MemoTxt.Clear;
     MemoTxt.Lines.Add(WritePromHeaders);
     LineNumber:=1;
@@ -367,38 +388,50 @@ begin
           begin
             MemoTxt.Lines.Add('Неверный заголовок файла, проведите выгрузку "Остатки на складе.xls" из remonline ещё раз '
                                 +CellRow+CellNum+'!'+'!'+CellText);
+            ShowMessage('Неверный файл остатоков, он создан нажатием на кнопку "Создать отчёт"'+chr(10)+chr(13)
+                          +'Зайдите на сайт remonline ещё раз и выгрузите файл остатков с помощью "бутерброда"'+chr(10)+chr(13)
+                          +'Выберите вкладку "Склад", бутерброд(три полоски) находится возле Строки "Наличие"');
             Excel.ActiveWorkbook.Close;
             Excel.Application.Quit;
             break;
           end;
     end;
     LineNumber:=2;
+    PB.StepIt;
     isEmptyLine:=false;
     while not IsEmptyLine do
       begin
+      PB.StepIt;
       PrintText:='';
-      for I := 1 to 12 do
+      for I := 1 to 13 do
         begin
         CellRow:=caseNumber(i);
         CellNum:=IntToStr(LineNumber);
         CellText:=trim(Excel.Range[CellRow+CellNum]);
-        if (CellRow='A') and (length(CellText)=0) then IsEmptyLine:=true;
+        if (CellRow='D') and (length(CellText)=0) then IsEmptyLine:=true;
         RemontkaText[i]:=CellText;
-        if LineNumber>50 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
+        if LineNumber>5000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
       end;
-    if not IsEmptyLine then MemoTxt.Lines.Add(PrintPromText(RemontkaText));
-    inc(LineNumber);
+      if not IsEmptyLine then MemoTxt.Lines.Add(PrintPromText(RemontkaText));
+      inc(LineNumber);
     end;
+    // MemoLog.Lines.Add(ExtractFileExt(FileName));
+    if LowerCase(ExtractFileExt(FileName))='.xls' then CsvFileName:=ExtractFilePath(FileName)+'prom_'+Copy(ExtractFileName(FileName),1,length(ExtractFileName(FileName))-3)+'csv';
+    if LowerCase(ExtractFileExt(FileName))='.xlsx' then CsvFileName:=ExtractFilePath(FileName)+'prom_'+Copy(ExtractFileName(FileName),1,length(ExtractFileName(FileName))-4)+'csv';
+    MemoLog.Lines.Add(IntToStr(MemoTxt.Lines.Count)+' строк перенесено в CSV файл '+CsvFileName);
+    Pb.Position:=PB.Max;
+    finally
     Excel.ActiveWorkbook.Close;
     Excel.Application.Quit;
+    end;
     try
-    MemoTxt.Lines.SaveToFile('D:\prom_ost.csv');
+    MemoTxt.Lines.SaveToFile(CsvFileName);
     except on E:EFCreateError do
-     begin
-     MessageDlg('Прайс-лист открыт в программе Excel, или сбой работы этой программы. Закройте Excel либо перезагрузите компьютер', mtError, [mbOK],0);
+      begin
+      MessageDlg('Прайс-лист открыт в программе Excel, или сбой работы этой программы. Закройте Excel либо перезагрузите компьютер', mtError, [mbOK],0);
+      end;
     end;
-    end;
-//end;
+  end;
 end;
 
 procedure TFormMain.FillMapping;
@@ -468,6 +501,11 @@ end;
 procedure TFormMain.FormCreate(Sender: TObject);
 begin
 FillMapping;
+end;
+
+procedure TFormMain.FormDblClick(Sender: TObject);
+begin
+MemoTxt.Visible:=true;
 end;
 
 function TFormMain.isRemontkaHeaderCorrect(Where:integer; Value: string): boolean;

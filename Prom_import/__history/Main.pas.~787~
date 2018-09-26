@@ -1,0 +1,563 @@
+{$A8,B-,C+,D+,E-,F-,G+,H+,I+,J-,K-,L+,M-,N-,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
+{$MINSTACKSIZE $00004000}
+{$MAXSTACKSIZE $00100000}
+{$IMAGEBASE $00400000}
+{$APPTYPE GUI}
+{$WARN SYMBOL_DEPRECATED ON}
+{$WARN SYMBOL_LIBRARY ON}
+{$WARN SYMBOL_PLATFORM ON}
+{$WARN SYMBOL_EXPERIMENTAL ON}
+{$WARN UNIT_LIBRARY ON}
+{$WARN UNIT_PLATFORM ON}
+{$WARN UNIT_DEPRECATED ON}
+{$WARN UNIT_EXPERIMENTAL ON}
+{$WARN HRESULT_COMPAT ON}
+{$WARN HIDING_MEMBER ON}
+{$WARN HIDDEN_VIRTUAL ON}
+{$WARN GARBAGE ON}
+{$WARN BOUNDS_ERROR ON}
+{$WARN ZERO_NIL_COMPAT ON}
+{$WARN STRING_CONST_TRUNCED ON}
+{$WARN FOR_LOOP_VAR_VARPAR ON}
+{$WARN TYPED_CONST_VARPAR ON}
+{$WARN ASG_TO_TYPED_CONST ON}
+{$WARN CASE_LABEL_RANGE ON}
+{$WARN FOR_VARIABLE ON}
+{$WARN CONSTRUCTING_ABSTRACT ON}
+{$WARN COMPARISON_FALSE ON}
+{$WARN COMPARISON_TRUE ON}
+{$WARN COMPARING_SIGNED_UNSIGNED ON}
+{$WARN COMBINING_SIGNED_UNSIGNED ON}
+{$WARN UNSUPPORTED_CONSTRUCT ON}
+{$WARN FILE_OPEN ON}
+{$WARN FILE_OPEN_UNITSRC ON}
+{$WARN BAD_GLOBAL_SYMBOL ON}
+{$WARN DUPLICATE_CTOR_DTOR ON}
+{$WARN INVALID_DIRECTIVE ON}
+{$WARN PACKAGE_NO_LINK ON}
+{$WARN PACKAGED_THREADVAR ON}
+{$WARN IMPLICIT_IMPORT ON}
+{$WARN HPPEMIT_IGNORED ON}
+{$WARN NO_RETVAL ON}
+{$WARN USE_BEFORE_DEF ON}
+{$WARN FOR_LOOP_VAR_UNDEF ON}
+{$WARN UNIT_NAME_MISMATCH ON}
+{$WARN NO_CFG_FILE_FOUND ON}
+{$WARN IMPLICIT_VARIANTS ON}
+{$WARN UNICODE_TO_LOCALE ON}
+{$WARN LOCALE_TO_UNICODE ON}
+{$WARN IMAGEBASE_MULTIPLE ON}
+{$WARN SUSPICIOUS_TYPECAST ON}
+{$WARN PRIVATE_PROPACCESSOR ON}
+{$WARN UNSAFE_TYPE OFF}
+{$WARN UNSAFE_CODE OFF}
+{$WARN UNSAFE_CAST OFF}
+{$WARN OPTION_TRUNCATED ON}
+{$WARN WIDECHAR_REDUCED ON}
+{$WARN DUPLICATES_IGNORED ON}
+{$WARN UNIT_INIT_SEQ ON}
+{$WARN LOCAL_PINVOKE ON}
+{$WARN MESSAGE_DIRECTIVE ON}
+{$WARN TYPEINFO_IMPLICITLY_ADDED ON}
+{$WARN RLINK_WARNING ON}
+{$WARN IMPLICIT_STRING_CAST ON}
+{$WARN IMPLICIT_STRING_CAST_LOSS ON}
+{$WARN EXPLICIT_STRING_CAST OFF}
+{$WARN EXPLICIT_STRING_CAST_LOSS OFF}
+{$WARN CVT_WCHAR_TO_ACHAR ON}
+{$WARN CVT_NARROWING_STRING_LOST ON}
+{$WARN CVT_ACHAR_TO_WCHAR ON}
+{$WARN CVT_WIDENING_STRING_LOST ON}
+{$WARN NON_PORTABLE_TYPECAST ON}
+{$WARN XML_WHITESPACE_NOT_ALLOWED ON}
+{$WARN XML_UNKNOWN_ENTITY ON}
+{$WARN XML_INVALID_NAME_START ON}
+{$WARN XML_INVALID_NAME ON}
+{$WARN XML_EXPECTED_CHARACTER ON}
+{$WARN XML_CREF_NO_RESOLVE ON}
+{$WARN XML_NO_PARM ON}
+{$WARN XML_NO_MATCHING_PARM ON}
+{$WARN IMMUTABLE_STRINGS OFF}
+unit Main;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Buttons, ComObj,
+  Vcl.ComCtrls;
+
+const RemontkaHeader : array [1..13] of string = ('Код','Артикул','Штрих-код','Наименование','Остаток','Категория','Гарантия',
+                           'Гарантийный период','Закупочная цена','Нулевая','цена в интернете', 'Розничная','Ремонтная');
+PromHeader : array [1..22] of string = (
+      'Код_товара','Название_позиции','Ключевые_слова','Описание','Тип_товара','Цена',
+      'Валюта','Единица_измерения','Минимальный_объем_заказа','Оптовая_цена','Минимальный_заказ_опт','Ссылка_изображения',
+      'Наличие','Скидка','Производитель','Страна_производитель','Номер_группы','Адрес_подраздела',
+      'Идентификатор_товара','Уникальный_идентификатор','Идентификатор_подраздела','Идентификатор_группы'
+);
+FileSeparator:char=chr(9);
+
+type
+  Mapping_rec = record
+    RemontkaName, PromName:string;
+    RemontkaNumber:integer;
+end;
+
+type PriceRec= array [1..22] of string;
+type
+  TFormMain = class(TForm)
+    MemoTxt: TMemo;
+    BitBtnXLS: TBitBtn;
+    BitBtnClose: TBitBtn;
+    FileOpenDialog1: TFileOpenDialog;
+    MemoLog: TMemo;
+    BitBtnCSV: TBitBtn;
+    PB: TProgressBar;
+    procedure BitBtnCloseClick(Sender: TObject);
+    procedure BitBtnXLSClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure BitBtnCSVClick(Sender: TObject);
+    procedure FormDblClick(Sender: TObject);
+  private
+    { Private declarations }
+    Mapping:array [1..22] of Mapping_rec;
+    RemontkaText:array[1..22] of string;
+
+    function isRemontkaHeaderCorrect(Where:integer; Value:string):boolean;
+    function WritePromHeaders:string;
+    function WriteRemontkaHeader: string;
+    function CaseNumber(k:integer):string;
+    procedure FillMapping;
+    function PrintPromText(pRemText:array of string):string;
+    procedure CopyMemoToXLS(FileName:string; Lines:integer);
+
+  public
+    { Public declarations }
+  end;
+var
+  FormMain: TFormMain;
+
+implementation
+
+{$R *.dfm}
+
+procedure TFormMain.BitBtnCloseClick(Sender: TObject);
+begin
+Close;
+end;
+
+procedure TFormMain.BitBtnXLSClick(Sender: TObject);
+var FileName:string;
+ExcelIn: Variant;
+//ExcelOut:Variant;
+FString:string;
+PrintText:string;
+FileName1, FileName2:string;
+IsEmptyLine:boolean;
+CellText, CellNum, CellRow:string;
+LineNumber:integer;
+I: Integer;
+begin
+//Ветка создания XLS
+if FileOpenDialog1.Execute then
+begin
+    try
+      try
+       ExcelIn := GetActiveOleObject('Excel.Application');
+       except on EOLESysError do
+       ExcelIn := CreateOleObject('Excel.Application');
+      end;
+      ExcelIn.Visible := False;
+      ExcelIn.WindowState := -4140;
+      ExcelIn.DisplayAlerts := False;
+      ExcelIn.WorkBooks.Open(FileOpenDialog1.FileName, 0 , true);
+      ExcelIn.WorkSheets[1].Activate;
+      MemoTxt.Clear;
+      MemoTxt.Lines.Add(WritePromHeaders);
+      LineNumber:=1;
+      PB.Position:=0;
+      PB.Min:=1;
+      PB.Max:=300;
+      PB.Step:=1;
+      PB.StepIt;
+      for I := 1 to length(RemontkaHeader)-1 do
+      begin
+        CellRow:=caseNumber(i);
+        CellNum:='1';
+        CellText:=Trim(ExcelIn.Range[CellRow+CellNum]);
+        if not isRemontkaHeaderCorrect(i, CellText) then
+          begin
+            MemoLog.Lines.Add('Неверный заголовок файла, проведите выгрузку "Остатки на складе.xls" из remonline ещё раз     '
+                                +CellRow+CellNum+'!'+'!'+CellText);
+            ShowMessage('Неверный файл остатоков, он создан нажатием на кнопку "Создать отчёт"'+chr(10)+chr(13)
+                          +'Зайдите на сайт remonline ещё раз и выгрузите файл остатков с помощью "бутерброда"'+chr(10)+chr(13)
+                          +'Выберите вкладку "Склад", бутерброд(три полоски) находится возле Строки "Наличие"');
+            //ExcelIn.ActiveWorkbook.Close;
+            //ExcelIn.Application.Quit;
+            exit;
+          end;
+      end;
+      LineNumber:=2;
+      isEmptyLine:=false;
+      while not IsEmptyLine do
+      begin
+      //PB.Max:=LineNumber*2;
+      PB.StepIt;
+      PrintText:='';
+      for I := 1 to 13 do
+        begin
+        CellRow:=caseNumber(i);
+        CellNum:=IntToStr(LineNumber);
+        CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
+        if (CellRow='D') and (length(CellText)=0) then IsEmptyLine:=true;
+        RemontkaText[i]:=CellText;
+        if LineNumber>50000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
+      end;
+      if not IsEmptyLine then
+      begin
+      MemoTxt.Lines.Add(PrintPromText(RemontkaText));
+       end;
+       inc(LineNumber);
+      end;
+    finally
+      ExcelIn.ActiveWorkbook.Close;
+      ExcelIn.Application.Quit;
+    end;
+  FileName:=FileOpenDialog1.FileName;
+  if LowerCase(ExtractFileExt(FileName))='.xls' then FileName:=LowerCase(FileName+'x');
+  CopyMemoToXLS(ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName), LineNumber);
+  MemoLog.Lines.Add('Прайс готов для загрузки: '+ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName));
+  Pb.Position:=PB.Max;
+  end;
+end;
+
+function TFormMain.CaseNumber(k: integer): string;
+begin
+case k of
+      1: Result:='A';
+      2: Result:='B';
+      3: Result:='C';
+      4: Result:='D';
+      5: Result:='E';
+      6: Result:='F';
+      7: Result:='G';
+      8: Result:='H';
+      9: Result:='I';
+      10: Result:='J';
+      11: Result:='K';
+      12: Result:='L';
+      13: Result:='M';
+      14: Result:='N';
+      15: Result:='O';
+      16: Result:='P';
+      17: Result:='Q';
+      18: Result:='R';
+      19: Result:='S';
+      20: Result:='T';
+      21: Result:='U';
+      22: Result:='V';
+      23: Result:='W';
+      24: Result:='X';
+      25: Result:='Y';
+      26: Result:='Z';
+      27: Result:='AA';
+      28: Result:='AB';
+      29: Result:='AC';
+      30: Result:='AD';
+      31: Result:='AE';
+      32: Result:='AF';
+      33: Result:='AG';
+      34: Result:='AH';
+      35: Result:='AI';
+      36: Result:='AJ';
+      37: Result:='AK';
+      38: Result:='AL';
+      39: Result:='AM';
+      40: Result:='AN';
+      else Result:='ZZ';
+end;
+end;
+
+
+procedure TFormMain.CopyMemoToXLS(FileName:string; Lines:integer);
+var i:integer;
+LineStr:string;
+ItemsCntr, where, LineNumber :integer;
+CellText, CellNum, CellRow:string;
+ExcelOut:Variant;
+begin
+//PB.Max:=Lines*2;
+//PB.Position:=Lines;
+PB.StepIt;
+try
+    //проверяем, нет ли запущенного Excel
+    try
+    ExcelOut := GetActiveOleObject('Excel.Application');
+    except
+    //если нет, то запускаем
+    on EOLESysError do
+      ExcelOut := CreateOleObject('Excel.Application');
+    end;
+    ExcelOut.Visible := False;
+    //Открывать Excel на полный экран
+    ExcelOut.WindowState := -4140;  //-4137
+    //не показывать предупреждающие сообщения
+    ExcelOut.DisplayAlerts := False;
+    ExcelOut.WorkBooks.Add;
+    ExcelOut.WorkSheets[1].Activate;
+    ExcelOut.WorkBooks[1].WorkSheets[1].Name:='Export Products Sheet';
+    MemoLog.Lines.Add(IntToStr(MemoTxt.Lines.Count)+' строк экспортируем в XLS');
+    LineNumber:=1;
+    CellNum:='';
+    CellRow:='';
+    for i:=0 to MemoTxt.Lines.Count-1 do
+      begin
+      LineStr:=MemoTxt.Lines[i];
+      CellNum:=IntToStr(i+1);
+      ItemsCntr:=0;
+      while Pos(FileSeparator,LineStr)>0 do
+        begin
+        inc(ItemsCntr);
+        if ItemsCntr>50 then break;
+        CellRow:=caseNumber(ItemsCntr);
+        where:= Pos(FileSeparator,LineStr);
+        CellText:=Copy(LineStr,1,where-1);
+        LineStr:=Copy(LineStr,where+1,length(LineStr));
+        // MemoLog.Lines.Add(CellText+'"+"'+LineStr);
+        // MemoLog.Lines.Add('Cell="'+CellRow+CellNum+'" ,value="'+CellText+'"');
+        ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(i+1),ItemsCntr].Value:=CellText;
+        end;
+    PB.StepIt;
+    end;
+    try
+     ExcelOut.WorkBooks[1].SaveAs(FileName);
+    except on E:EFCreateError do
+    MessageDlg('Прайс-лист '+FileName+' открыт в программе Excel, или сбой работы этой программы.'+chr(10)+chr(13)+' Закройте Excel либо перезагрузите компьютер', mtError, [mbOK],0);
+    end;
+  finally
+  ExcelOut.ActiveWorkbook.Close;
+  ExcelOut.Application.Quit;
+  end;
+end;
+
+procedure TFormMain.BitBtnCSVClick(Sender: TObject);
+var F:TextFile;
+FileName:string;
+CsvFileName:string;
+Excel: Variant;
+FString:string;
+PrintText:string;
+IsEmptyLine:boolean;
+CellText, CellNum, CellRow:string;
+LineNumber:integer;
+I: Integer;
+begin
+MemoLog.Clear;
+if FileOpenDialog1.Execute then
+  begin
+    FileName:=FileOpenDialog1.FileName;
+    try
+    try
+     Excel := GetActiveOleObject('Excel.Application');
+     except
+    on EOLESysError do
+      Excel := CreateOleObject('Excel.Application');
+    end;
+    Excel.Visible := false;
+    Excel.WindowState := -4140;  //-4137
+    Excel.DisplayAlerts := False;
+    Excel.WorkBooks.Open(FileName, 0 , true);
+    Excel.WorkSheets[1].Activate;
+    PB.Position:=0;
+    PB.Min:=1;
+    PB.Max:=300;
+    PB.Step:=1;
+    PB.StepIt;
+    MemoTxt.Clear;
+    MemoTxt.Lines.Add(WritePromHeaders);
+    LineNumber:=1;
+    for I := 1 to length(RemontkaHeader)-1 do
+    begin
+      CellRow:=caseNumber(i);
+      CellNum:='1';
+      CellText:=Trim(Excel.Range[CellRow+CellNum]);
+      if not isRemontkaHeaderCorrect(i, CellText) then
+          begin
+            MemoTxt.Lines.Add('Неверный заголовок файла, проведите выгрузку "Остатки на складе.xls" из remonline ещё раз '
+                                +CellRow+CellNum+'!'+'!'+CellText);
+            ShowMessage('Неверный файл остатоков, он создан нажатием на кнопку "Создать отчёт"'+chr(10)+chr(13)
+                          +'Зайдите на сайт remonline ещё раз и выгрузите файл остатков с помощью "бутерброда"'+chr(10)+chr(13)
+                          +'Выберите вкладку "Склад", бутерброд(три полоски) находится возле Строки "Наличие"');
+            Excel.ActiveWorkbook.Close;
+            Excel.Application.Quit;
+            break;
+          end;
+    end;
+    LineNumber:=2;
+    PB.StepIt;
+    isEmptyLine:=false;
+    while not IsEmptyLine do
+      begin
+      PB.StepIt;
+      PrintText:='';
+      for I := 1 to 13 do
+        begin
+        CellRow:=caseNumber(i);
+        CellNum:=IntToStr(LineNumber);
+        CellText:=trim(Excel.Range[CellRow+CellNum]);
+        if (CellRow='D') and (length(CellText)=0) then IsEmptyLine:=true;
+        RemontkaText[i]:=CellText;
+        if LineNumber>5000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
+      end;
+      if not IsEmptyLine then MemoTxt.Lines.Add(PrintPromText(RemontkaText));
+      inc(LineNumber);
+    end;
+    MemoLog.Lines.Add(ExtractFileExt(FileName));
+    if LowerCase(ExtractFileExt(FileName))='.xls' then CsvFileName:=ExtractFilePath(FileName)+Copy(ExtractFileName(FileName),1,length(ExtractFileName(FileName))-3)+'csv';
+    if LowerCase(ExtractFileExt(FileName))='.xlsx' then CsvFileName:=ExtractFilePath(FileName)+Copy(ExtractFileName(FileName),1,length(ExtractFileName(FileName))-4)+'csv';
+    MemoLog.Lines.Add(IntToStr(MemoTxt.Lines.Count)+' строк перенесено в CSV файл '+CsvFileName);
+    Pb.Position:=PB.Max;
+    finally
+    Excel.ActiveWorkbook.Close;
+    Excel.Application.Quit;
+    end;
+    try
+    //MemoTxt.Lines.SaveToFile(CsvFileName);
+    except on E:EFCreateError do
+      begin
+      MessageDlg('Прайс-лист открыт в программе Excel, или сбой работы этой программы. Закройте Excel либо перезагрузите компьютер', mtError, [mbOK],0);
+      end;
+    end;
+  end;
+end;
+
+procedure TFormMain.FillMapping;
+var i:integer;
+begin
+Mapping[1].PromName:= 'Код_товара';
+Mapping[2].PromName:= 'Название_позиции';
+Mapping[3].PromName:= 'Ключевые_слова';
+Mapping[4].PromName:= 'Описание';
+Mapping[5].PromName:= 'Тип_товара';
+Mapping[6].PromName:= 'Цена';
+Mapping[7].PromName:= 'Валюта';
+Mapping[8].PromName:= 'Единица_измерения';
+Mapping[9].PromName:= 'Минимальный_объем_заказа';
+Mapping[10].PromName:= 'Оптовая_цена';
+Mapping[11].PromName:= 'Минимальный_заказ_опт';
+Mapping[12].PromName:= 'Ссылка_изображения';
+Mapping[13].PromName:= 'Наличие';
+Mapping[14].PromName:= 'Скидка';
+Mapping[15].PromName:= 'Производитель';
+Mapping[16].PromName:= 'Страна_производитель';
+Mapping[17].PromName:= 'Номер_группы';
+Mapping[18].PromName:= 'Адрес_подраздела';
+Mapping[19].PromName:= 'Идентификатор_товара';
+Mapping[20].PromName:= 'Уникальный_идентификатор';
+Mapping[21].PromName:= 'Идентификатор_подраздела';
+Mapping[22].PromName:= 'Идентификатор_группы';
+Mapping[1].RemontkaName:= 'Код';
+Mapping[2].RemontkaName:= 'Наименование';
+Mapping[3].RemontkaName:= '';
+Mapping[4].RemontkaName:= 'Наименование';
+Mapping[5].RemontkaName:= '';
+Mapping[6].RemontkaName:= 'Розничная';
+Mapping[7].RemontkaName:= 'Всегда UAH';
+Mapping[8].RemontkaName:= '';
+Mapping[9].RemontkaName:= '';
+Mapping[10].RemontkaName:= 'Ремонтная';
+Mapping[11].RemontkaName:= '';
+Mapping[12].RemontkaName:= '';
+Mapping[13].RemontkaName:= 'Остаток';
+Mapping[14].RemontkaName:= '';
+Mapping[15].RemontkaName:= '';
+Mapping[16].RemontkaName:= '';
+Mapping[17].RemontkaName:= '';
+Mapping[18].RemontkaName:= '';
+Mapping[19].RemontkaName:= '';
+Mapping[20].RemontkaName:= '';
+Mapping[21].RemontkaName:= '';
+Mapping[22].RemontkaName:= '';
+for i:=1 to 22 do Mapping[i].RemontkaNumber:=-999;
+Mapping[1].RemontkaNumber:=1-1;
+Mapping[2].RemontkaNumber:=4-1;
+Mapping[4].RemontkaNumber:=4-1;
+Mapping[5].RemontkaNumber:=-5;
+Mapping[6].RemontkaNumber:=12-1;
+Mapping[7].RemontkaNumber:=-7;
+Mapping[8].RemontkaNumber:=-8;
+Mapping[9].RemontkaNumber:=-9;
+Mapping[10].RemontkaNumber:=11-1;
+Mapping[11].RemontkaNumber:=-11;
+Mapping[13].RemontkaNumber:=5-1;
+Mapping[19].RemontkaNumber:=1-1;
+//Mapping[22].RemontkaNumber:=6-1;
+Mapping[22].RemontkaNumber:=-999;//Не обрабатываем идентификатор группы
+end;
+
+procedure TFormMain.FormCreate(Sender: TObject);
+begin
+FillMapping;
+end;
+
+procedure TFormMain.FormDblClick(Sender: TObject);
+begin
+MemoTxt.Visible:=true;
+end;
+
+function TFormMain.isRemontkaHeaderCorrect(Where:integer; Value: string): boolean;
+ begin
+ if trim(Value) = RemontkaHeader[where] then Result:=true else Result:=false;
+end;
+
+function TFormMain.PrintPromText(pRemText: array of string): string;
+var i, RemNumber:integer;
+begin
+Result:='';
+if (Mapping[1].RemontkaNumber>=0) then Result:=pRemText[Mapping[1].RemontkaNumber];
+for I := 2 to 22 do
+  begin
+    Result:=Result+FileSeparator;
+    RemNumber:=Mapping[i].RemontkaNumber;
+    case RemNumber of
+    -999:;
+    -5: Result:=Result+'u';
+    -7: Result:=Result+'UAH';
+    -8: Result:=Result+'шт.';
+    -9: Result:=Result+'1';
+    -11: Result:=Result+'2';
+    4: begin
+       try
+       if (StrToInt(pRemText[Mapping[i].RemontkaNumber])>0) then Result:=Result+'+' else Result:=Result+'-' ;
+         //Заменяем количество на Наличие + или -
+         except on E:EConvertError do Result:=Result+'-';
+       end;
+    end
+    else Result:=Result+pRemText[Mapping[i].RemontkaNumber];
+    end;
+  end;
+ end;
+
+function TFormMain.WriteRemontkaHeader: string;
+  var i:integer;
+begin
+Result:=RemontkaHeader[1];
+for I := 2 to Length(RemontkaHeader) do
+  begin
+     Result:= Result+FileSeparator+ RemontkaHeader[i];
+  end;
+
+end;
+
+function TFormMain.WritePromHeaders: string;
+var i:integer;
+begin
+Result:=PromHeader[1];
+for I := 2 to Length(PromHeader) do
+  begin
+    Result:=Result+FileSeparator+PromHeader[i];
+  end;
+
+end;
+
+end.
