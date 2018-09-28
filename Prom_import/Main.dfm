@@ -12,6 +12,7 @@ object FormMain: TFormMain
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDblClick = FormDblClick
   DesignSize = (
     833
     563)
@@ -35,6 +36,7 @@ object FormMain: TFormMain
     ScrollBars = ssBoth
     ShowHint = True
     TabOrder = 0
+    Visible = False
     WantTabs = True
     WordWrap = False
   end
@@ -65,7 +67,7 @@ object FormMain: TFormMain
     Left = 8
     Top = 242
     Width = 817
-    Height = 271
+    Height = 239
     Anchors = [akLeft, akRight, akBottom]
     Lines.Strings = (
       'MemoLog')
@@ -73,7 +75,7 @@ object FormMain: TFormMain
     TabOrder = 3
   end
   object BitBtnCSV: TBitBtn
-    Left = 184
+    Left = 208
     Top = 530
     Width = 121
     Height = 25
@@ -84,18 +86,22 @@ object FormMain: TFormMain
     TabOrder = 4
     OnClick = BitBtnCSVClick
   end
+  object PB: TProgressBar
+    Left = 8
+    Top = 496
+    Width = 817
+    Height = 17
+    TabOrder = 5
+  end
   object FileOpenDialog1: TFileOpenDialog
+    DefaultExtension = '*.xls'
     FavoriteLinks = <>
     FileTypes = <
       item
-        DisplayName = 'Excel 2003'
-        FileMask = '*.xlsx'
-      end
-      item
-        DisplayName = 'Excel 95'
-        FileMask = '*.xls'
+        DisplayName = 'Excel'
+        FileMask = '*.xls;*.xlsx'
       end>
-    Options = []
+    Options = [fdoPathMustExist, fdoFileMustExist, fdoShareAware]
     Left = 184
     Top = 120
   end
