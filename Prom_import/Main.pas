@@ -122,14 +122,14 @@ type
   private
     { Private declarations }
     Mapping:array [1..22] of Mapping_rec;
-    RemontkaText:array[1..22] of string;
-
+    RemontkaText: array[1..22] of string;
     function isRemontkaHeaderCorrect(Where:integer; Value:string):boolean;
     function WritePromHeaders:string;
     function WriteRemontkaHeader: string;
     function CaseNumber(k:integer):string;
     procedure FillMapping;
-    function PrintPromText(pRemText:array of string):string;
+    function PrintPromText(pPromText:array of string):string;
+    function LogRemText(RemText:array of string):string;
     function PlusQuotes(Str:string; isQuoted:boolean):string;
     procedure CopyMemoToXLS(FileName:string; Lines:integer);
 
@@ -151,14 +151,14 @@ end;
 procedure TFormMain.BitBtnXLSClick(Sender: TObject);
 var FileName:string;
 ExcelIn: Variant;
-//ExcelOut:Variant;
+Price:Extended;
 FString:string;
 PrintText:string;
 FileName1, FileName2:string;
-IsEmptyLine:boolean;
+IsEmptyLine, IsExcludedLine:boolean;
 CellText, CellNum, CellRow:string;
 LineNumber:integer;
-I: Integer;
+Amount, I: Integer;
 begin
 MemoLog.Clear;
 if FileOpenDialog1.Execute then
@@ -203,22 +203,61 @@ begin
       isEmptyLine:=false;
       while not IsEmptyLine do
       begin
+      isExcludedLine:=false;
       PB.StepIt;
       for I := 1 to 13 do
         begin
         CellRow:=caseNumber(i);
         CellNum:=IntToStr(LineNumber);
         CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
-        if (CellRow='D') and (length(CellText)=0) then IsEmptyLine:=true;
+        //if (CellRow='D') and (length(CellText)=0) then IsEmptyLine:=true;
         RemontkaText[i]:=CellText;
         if LineNumber>50000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
-      end;
-      if not IsEmptyLine then
-      begin
-      PrintText:=PrintPromText(RemontkaText);
-      if PrintText<>'' then MemoTxt.Lines.Add(PrintText);
-      end;
-       inc(LineNumber);
+        end;
+      //
+      if  (length(RemontkaText[1])=0)and(length(RemontkaText[2])=0)
+           and (length(RemontkaText[3])=0)and(length(RemontkaText[4])=0)
+      then
+        begin
+        LogRemText(RemontkaText);
+        MemoLog.Lines.Add('Найдена пустая строка');
+        IsEmptyLine:=true;
+        Continue;
+        end;
+      Amount:=StrToIntDef(RemontkaText[5],-1);
+      if (Amount = 0) then
+        begin
+        LogRemText(RemontkaText);
+        MemoLog.Lines.Add('Товар исключается, нулевое количество. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        isExcludedLine:=true;
+        end;
+      if (Amount = -1) then
+        begin
+        LogRemText(RemontkaText);
+        MemoLog.Lines.Add('Товар с кодом "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        MemoLog.Lines.Add('Товар исключается, количество="'+RemontkaText[5]+'" не является числом. Сообщите разработчику.');
+        IsExcludedLine:=true;
+        end;
+      Price:=StrToFloatDef(RemontkaText[11],-1);
+      if (Price = 0) then
+        begin
+        LogRemText(RemontkaText);
+        MemoLog.Lines.Add('Товар исключается, нулевая цена. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        IsExcludedLine:=true;
+        end;
+      if (Price = -1) then
+        begin
+        LogRemText(RemontkaText);
+        MemoLog.Lines.Add('Товар с кодом "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        MemoLog.Lines.Add('Товар исключается, цена ="'+RemontkaText[11]+'" отображается неверно. Сообщите разработчику.');
+        isExcludedLine:=true;
+        end;
+      if not IsEmptyLine and not IsExcludedLine then
+        begin
+        PrintText:=PrintPromText(RemontkaText);
+        if PrintText<>'' then MemoTxt.Lines.Add(PrintText);
+        end;
+      inc(LineNumber);
       end;
     finally
       ExcelIn.ActiveWorkbook.Close;
@@ -347,8 +386,9 @@ FileName:string;
 CsvFileName:string;
 Excel: Variant;
 FString:string;
-PrintText:string;
-IsEmptyLine:boolean;
+Price:real;
+Amount:integer;
+IsEmptyLine, isExcludedLine:boolean;
 CellText, CellNum, CellRow:string;
 LineNumber:integer;
 I: Integer;
@@ -399,22 +439,58 @@ if FileOpenDialog1.Execute then
     PB.StepIt;
     isEmptyLine:=false;
     while not IsEmptyLine do
+    begin
+    isExcludedLine:=false;
+    PB.StepIt;
+    for I := 1 to 13 do
       begin
-      PB.StepIt;
-      PrintText:='';
-      for I := 1 to 13 do
-        begin
-        CellRow:=caseNumber(i);
-        CellNum:=IntToStr(LineNumber);
-        CellText:=trim(Excel.Range[CellRow+CellNum]);
-        if (CellRow='D') and (length(CellText)=0) then IsEmptyLine:=true;
-        RemontkaText[i]:=CellText;
-        if LineNumber>5000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
+      CellRow:=caseNumber(i);
+      CellNum:=IntToStr(LineNumber);
+      CellText:=trim(Excel.Range[CellRow+CellNum]);
+      RemontkaText[i]:=CellText;
+      if LineNumber>5000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
       end;
-      if not IsEmptyLine then MemoTxt.Lines.Add(PrintPromText(RemontkaText));
-      inc(LineNumber);
+
+    if  (length(RemontkaText[1])=0)and(length(RemontkaText[2])=0)
+           and (length(RemontkaText[3])=0)and(length(RemontkaText[4])=0)
+      then
+        begin
+        LogRemText(RemontkaText);
+        MemoLog.Lines.Add('Найдена пустая строка');
+        IsEmptyLine:=true;
+        Continue;
+        end;
+    Amount:=StrToIntDef(RemontkaText[5],-1);
+    if (Amount = 0) then
+      begin
+      LogRemText(RemontkaText);
+      MemoLog.Lines.Add('Товар исключается, нулевое количество. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+      isExcludedLine:=true;
+      end;
+    if (Amount = -1) then
+      begin
+      LogRemText(RemontkaText);
+      MemoLog.Lines.Add('Товар с кодом "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+      MemoLog.Lines.Add('Товар исключается, количество="'+RemontkaText[5]+'" не является числом. Сообщите разработчику.');
+      IsExcludedLine:=true;
+      end;
+    Price:=StrToFloatDef(RemontkaText[11],-1);
+    if (Price = 0) then
+      begin
+      LogRemText(RemontkaText);
+      MemoLog.Lines.Add('Товар исключается, нулевая цена. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+      IsExcludedLine:=true;
+      end;
+    if (Price = -1) then
+      begin
+      LogRemText(RemontkaText);
+      MemoLog.Lines.Add('Товар с кодом "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+      MemoLog.Lines.Add('Товар исключается, цена ="'+RemontkaText[11]+'" отображается неверно. Сообщите разработчику.');
+      isExcludedLine:=true;
+      end;
+    if not IsEmptyLine and not isExcludedLine then MemoTxt.Lines.Add(PrintPromText(RemontkaText));
+    inc(LineNumber);
     end;
-    // MemoLog.Lines.Add(ExtractFileExt(FileName));
     if LowerCase(ExtractFileExt(FileName))='.xls' then CsvFileName:=ExtractFilePath(FileName)+'prom_'+Copy(ExtractFileName(FileName),1,length(ExtractFileName(FileName))-3)+'csv';
     if LowerCase(ExtractFileExt(FileName))='.xlsx' then CsvFileName:=ExtractFilePath(FileName)+'prom_'+Copy(ExtractFileName(FileName),1,length(ExtractFileName(FileName))-4)+'csv';
     MemoLog.Lines.Add(IntToStr(MemoTxt.Lines.Count)+' строк перенесено в CSV файл '+CsvFileName);
@@ -424,7 +500,7 @@ if FileOpenDialog1.Execute then
     Excel.Application.Quit;
     end;
     try
-    MemoTxt.Lines.SaveToFile(CsvFileName);
+    MemoTxt.Lines.SaveToFile(CsvFileName, TEncoding.UTF8);
     except on E:EFCreateError do
       begin
       MessageDlg('Прайс-лист открыт в программе Excel, или сбой работы этой программы. Закройте Excel либо перезагрузите компьютер', mtError, [mbOK],0);
@@ -511,7 +587,7 @@ Mapping[6].RemontkaNumber:=12-1;
 Mapping[7].RemontkaNumber:=-7;
 Mapping[8].RemontkaNumber:=-8;
 Mapping[9].RemontkaNumber:=-9;
-Mapping[10].RemontkaNumber:=11-1;
+Mapping[10].RemontkaNumber:=12-1;//Исключаем до выяснения с Заказчиком
 Mapping[11].RemontkaNumber:=-11;
 Mapping[13].RemontkaNumber:=5-1;
 Mapping[19].RemontkaNumber:=2-1;
@@ -536,17 +612,25 @@ function TFormMain.isRemontkaHeaderCorrect(Where:integer; Value: string): boolea
  if (where=2) and (Value <>'Артикул') then Result:=false;
 end;
 
+function TFormMain.LogRemText(RemText: array of string): string;
+var i:integer;
+begin
+Result:=RemText[1];
+for I := 2 to 13 do Result:=Result+'|'+Remtext[i];
+MemoLog.Lines.Add(Result);
+end;
+
 function TFormMain.PlusQuotes(Str: string; isQuoted: boolean): string;
 begin
 if isQuoted then Result:='"'+str+'"' else Result:=Str;
 end;
 
-function TFormMain.PrintPromText(pRemText: array of string): string;
+function TFormMain.PrintPromText(pPromText: array of string): string;
 var i, RemNumber:integer;
 Price:Extended;
 begin
 Result:='';
-if (Mapping[1].RemontkaNumber>=0) then Result:=PlusQuotes(pRemText[Mapping[1].RemontkaNumber],Mapping[i].Quoted);
+if (Mapping[1].RemontkaNumber>=0) then Result:=PlusQuotes(pPromText[Mapping[1].RemontkaNumber],Mapping[i].Quoted);
 for I := 2 to 22 do
   begin
     Result:=Result+FileSeparator;
@@ -558,27 +642,27 @@ for I := 2 to 22 do
     -8: Result:=Result+PlusQuotes('шт.',Mapping[i].Quoted);
     -9: Result:=Result+PlusQuotes('1',Mapping[i].Quoted);
     -11: Result:=Result+PlusQuotes('2',Mapping[i].Quoted);
-    4: if (StrToIntDef(pRemText[Mapping[i].RemontkaNumber],0)>0)
+    4: if (StrToIntDef(pPromText[Mapping[i].RemontkaNumber],0)>0)
           then Result:=Result+PlusQuotes('+',Mapping[i].Quoted)
           else Result:=Result+PlusQuotes('-',Mapping[i].Quoted);
          //Заменяем количество на Наличие + или -
-    else Result:=Result+PlusQuotes(pRemText[Mapping[i].RemontkaNumber],Mapping[i].Quoted);
+    else Result:=Result+PlusQuotes(pPromText[Mapping[i].RemontkaNumber],Mapping[i].Quoted);
         //Заменяем цену 0 на цену  0.00001
     if (i=6) then
       begin
-      Price:=StrToFloatDef(pRemText[Mapping[i].RemontkaNumber],-1);
+      Price:=StrToFloatDef(pPromText[Mapping[i].RemontkaNumber],-1);
       if (Price = 0) then
         begin
         Result:='';
-        MemoLog.Lines.Add('Товар с кодом "'+pRemText[1]+'", Название '+pRemText[2]);
+        MemoLog.Lines.Add('Товар с кодом "'+pPromText[1]+'", Название "'+pPromText[2]+'"');
         MemoLog.Lines.Add('Товар исключается, нулевая цена');
         exit;
         end;
       if (Price = -1) then
         begin
         Result:='';
-        MemoLog.Lines.Add('Товар с кодом "'+pRemText[1]+'", Название '+pRemText[2]);
-        MemoLog.Lines.Add('Товар исключается, неверно выгрузилась цена '+pRemText[6]+'.Сообщите разработчику.');
+        MemoLog.Lines.Add('Товар с кодом "'+pPromText[1]+'", Название "'+pPromText[2]+'"');
+        MemoLog.Lines.Add('Товар исключается, неверно выгрузилась цена '+pPromText[6]+'.Сообщите разработчику.');
         exit;
         end;
       end;

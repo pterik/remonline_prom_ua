@@ -36,7 +36,6 @@ object FormMain: TFormMain
     ScrollBars = ssBoth
     ShowHint = True
     TabOrder = 0
-    Visible = False
     WantTabs = True
     WordWrap = False
   end
@@ -91,6 +90,7 @@ object FormMain: TFormMain
     Top = 496
     Width = 817
     Height = 17
+    Anchors = [akLeft, akRight, akBottom]
     TabOrder = 5
   end
   object FileOpenDialog1: TFileOpenDialog
