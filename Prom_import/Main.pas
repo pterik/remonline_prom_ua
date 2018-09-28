@@ -159,7 +159,6 @@ IsEmptyLine:boolean;
 CellText, CellNum, CellRow:string;
 LineNumber:integer;
 I: Integer;
-Kod:string;
 begin
 MemoLog.Clear;
 if FileOpenDialog1.Execute then
@@ -197,8 +196,6 @@ begin
             ShowMessage('Неверный файл остатоков, он создан нажатием на кнопку "Создать отчёт"'+chr(10)+chr(13)
                           +'Зайдите на сайт remonline ещё раз и выгрузите файл остатков с помощью "бутерброда"'+chr(10)+chr(13)
                           +'Выберите вкладку "Склад", бутерброд(три полоски) находится возле Строки "Наличие"');
-            //ExcelIn.ActiveWorkbook.Close;
-            //ExcelIn.Application.Quit;
             exit;
           end;
       end;
@@ -206,25 +203,21 @@ begin
       isEmptyLine:=false;
       while not IsEmptyLine do
       begin
-      //PB.Max:=LineNumber*2;
       PB.StepIt;
-      PrintText:='';
       for I := 1 to 13 do
         begin
         CellRow:=caseNumber(i);
         CellNum:=IntToStr(LineNumber);
         CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
-        if I=1 then Kod:=CellText;
-        //Добавляем в код ещё и артикул, код оказался не уникальным
-        if I=2 then CellText:=Kod+'-'+Celltext;
         if (CellRow='D') and (length(CellText)=0) then IsEmptyLine:=true;
         RemontkaText[i]:=CellText;
         if LineNumber>50000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
       end;
       if not IsEmptyLine then
       begin
-      MemoTxt.Lines.Add(PrintPromText(RemontkaText));
-       end;
+      PrintText:=PrintPromText(RemontkaText);
+      if PrintText<>'' then MemoTxt.Lines.Add(PrintText);
+      end;
        inc(LineNumber);
       end;
     finally
@@ -444,15 +437,15 @@ procedure TFormMain.FillMapping;
 var i:integer;
 begin
 Mapping[1].PromName:= 'Код_товара';
-Mapping[1].Quoted:= true;
+Mapping[1].Quoted:= false;
 Mapping[2].PromName:= 'Название_позиции';
-Mapping[2].Quoted:= true;
+Mapping[2].Quoted:= false;
 Mapping[3].PromName:= 'Ключевые_слова';
-Mapping[3].Quoted:= true;
+Mapping[3].Quoted:= false;
 Mapping[4].PromName:= 'Описание';
-Mapping[4].Quoted:= true;
+Mapping[4].Quoted:= false;
 Mapping[5].PromName:= 'Тип_товара';
-Mapping[5].Quoted:= true;
+Mapping[5].Quoted:= false;
 Mapping[6].PromName:= 'Цена';
 Mapping[6].Quoted:= false;
 Mapping[7].PromName:= 'Валюта';
@@ -472,21 +465,21 @@ Mapping[13].Quoted:= false;
 Mapping[14].PromName:= 'Скидка';
 Mapping[14].Quoted:= false;
 Mapping[15].PromName:= 'Производитель';
-Mapping[15].Quoted:= true;
+Mapping[15].Quoted:= false;
 Mapping[16].PromName:= 'Страна_производитель';
-Mapping[16].Quoted:= true;
+Mapping[16].Quoted:= false;
 Mapping[17].PromName:= 'Номер_группы';
 Mapping[17].Quoted:= true;
 Mapping[18].PromName:= 'Адрес_подраздела';
 Mapping[18].Quoted:= false;
 Mapping[19].PromName:= 'Идентификатор_товара';
-Mapping[19].Quoted:= true;
+Mapping[19].Quoted:= false;
 Mapping[20].PromName:= 'Уникальный_идентификатор';
 Mapping[20].Quoted:= false;
 Mapping[21].PromName:= 'Идентификатор_подраздела';
-Mapping[21].Quoted:= true;
+Mapping[21].Quoted:= false;
 Mapping[22].PromName:= 'Идентификатор_группы';
-Mapping[22].Quoted:= true;
+Mapping[22].Quoted:= false;
 Mapping[1].RemontkaName:= 'Код';
 Mapping[2].RemontkaName:= 'Наименование';
 Mapping[3].RemontkaName:= '';
@@ -571,11 +564,23 @@ for I := 2 to 22 do
          //Заменяем количество на Наличие + или -
     else Result:=Result+PlusQuotes(pRemText[Mapping[i].RemontkaNumber],Mapping[i].Quoted);
         //Заменяем цену 0 на цену  0.00001
-    if (i=6) or (i=10) then
+    if (i=6) then
       begin
-      Price:=StrToFloatDef(pRemText[Mapping[i].RemontkaNumber],0.00001);
-      if (Price > 0) then Result:=Result+PlusQuotes(FloatToStr(Price),Mapping[i].Quoted)
-      else Result:=Result+PlusQuotes('0.00001',Mapping[i].Quoted);
+      Price:=StrToFloatDef(pRemText[Mapping[i].RemontkaNumber],-1);
+      if (Price = 0) then
+        begin
+        Result:='';
+        MemoLog.Lines.Add('Товар с кодом "'+pRemText[1]+'", Название '+pRemText[2]);
+        MemoLog.Lines.Add('Товар исключается, нулевая цена');
+        exit;
+        end;
+      if (Price = -1) then
+        begin
+        Result:='';
+        MemoLog.Lines.Add('Товар с кодом "'+pRemText[1]+'", Название '+pRemText[2]);
+        MemoLog.Lines.Add('Товар исключается, неверно выгрузилась цена '+pRemText[6]+'.Сообщите разработчику.');
+        exit;
+        end;
       end;
     end;
   end;
