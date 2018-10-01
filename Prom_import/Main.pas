@@ -89,13 +89,13 @@ uses
 
 const RemontkaHeader : array [1..13] of string = ('Код','Артикул','Штрих-код','Наименование','Остаток','Категория','Гарантия',
                            'Гарантийный период','Закупочная цена','Нулевая','цена в интернете', 'Розничная','Ремонтная');
-PromHeader : array [1..22] of string = (
+PromHeader : array [1..23] of string = (
       'Код_товара','Название_позиции','Ключевые_слова','Описание','Тип_товара','Цена',
       'Валюта','Единица_измерения','Минимальный_объем_заказа','Оптовая_цена','Минимальный_заказ_опт','Ссылка_изображения',
-      'Наличие','Скидка','Производитель','Страна_производитель','Номер_группы','Адрес_подраздела',
+      'Наличие','Количество', 'Скидка','Производитель','Страна_производитель','Номер_группы','Адрес_подраздела',
       'Идентификатор_товара','Уникальный_идентификатор','Идентификатор_подраздела','Идентификатор_группы'
 );
-FileSeparator:char=chr(9);
+FileSeparator:char=';';
 
 type
   Mapping_rec = record
@@ -104,7 +104,7 @@ type
     Quoted:boolean;
 end;
 
-type PriceRec= array [1..22] of string;
+type PriceRec= array [1..23] of string;
 type
   TFormMain = class(TForm)
     MemoTxt: TMemo;
@@ -114,6 +114,8 @@ type
     MemoLog: TMemo;
     BitBtnCSV: TBitBtn;
     PB: TProgressBar;
+    CheckBoxZeroPrice: TCheckBox;
+    CheckBoxZeroOstatki: TCheckBox;
     procedure BitBtnCloseClick(Sender: TObject);
     procedure BitBtnXLSClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -121,8 +123,8 @@ type
     procedure FormDblClick(Sender: TObject);
   private
     { Private declarations }
-    Mapping:array [1..22] of Mapping_rec;
-    RemontkaText: array[1..22] of string;
+    Mapping:array [1..23] of Mapping_rec;
+    RemontkaText: array[1..23] of string;
     function isRemontkaHeaderCorrect(Where:integer; Value:string):boolean;
     function WritePromHeaders:string;
     function WriteRemontkaHeader: string;
@@ -131,6 +133,7 @@ type
     function PrintPromText(pPromText:array of string):string;
     function LogRemText(RemText:array of string):string;
     function PlusQuotes(Str:string; isQuoted:boolean):string;
+    function TrimSeparator(const Str:string):string;
     procedure CopyMemoToXLS(FileName:string; Lines:integer);
 
   public
@@ -189,6 +192,7 @@ begin
         CellRow:=caseNumber(i);
         CellNum:='1';
         CellText:=Trim(ExcelIn.Range[CellRow+CellNum]);
+        CellText:=TrimSeparator(CellText);
         if not isRemontkaHeaderCorrect(i, CellText) then
           begin
             MemoLog.Lines.Add('Неверный заголовок файла, проведите выгрузку "Остатки на складе.xls" из remonline ещё раз     '
@@ -210,8 +214,8 @@ begin
         CellRow:=caseNumber(i);
         CellNum:=IntToStr(LineNumber);
         CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
-        //if (CellRow='D') and (length(CellText)=0) then IsEmptyLine:=true;
-        RemontkaText[i]:=CellText;
+        RemontkaText[i]:=TrimSeparator(CellText);
+        if (i=1) and (length(RemontkaText[i])>0) then RemontkaText[i]:=''''+RemontkaText[i];
         if LineNumber>50000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
         end;
       //
@@ -219,16 +223,16 @@ begin
            and (length(RemontkaText[3])=0)and(length(RemontkaText[4])=0)
       then
         begin
-        LogRemText(RemontkaText);
-        MemoLog.Lines.Add('Найдена пустая строка');
+        //LogRemText(RemontkaText);
+        //MemoLog.Lines.Add('Найдена пустая строка');
         IsEmptyLine:=true;
         Continue;
         end;
       Amount:=StrToIntDef(RemontkaText[5],-1);
       if (Amount = 0) then
         begin
-        LogRemText(RemontkaText);
-        MemoLog.Lines.Add('Товар исключается, нулевое количество. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        if not CheckBoxZeroOstatki.Checked then LogRemText(RemontkaText);
+        if not CheckBoxZeroOstatki.Checked then MemoLog.Lines.Add('Товар исключается, нулевое количество. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
         isExcludedLine:=true;
         end;
       if (Amount = -1) then
@@ -241,8 +245,8 @@ begin
       Price:=StrToFloatDef(RemontkaText[11],-1);
       if (Price = 0) then
         begin
-        LogRemText(RemontkaText);
-        MemoLog.Lines.Add('Товар исключается, нулевая цена. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        if not CheckBoxZeroPrice.Checked then LogRemText(RemontkaText);
+        if not CheckBoxZeroPrice.Checked then MemoLog.Lines.Add('Товар исключается, нулевая цена. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
         IsExcludedLine:=true;
         end;
       if (Price = -1) then
@@ -447,24 +451,23 @@ if FileOpenDialog1.Execute then
       CellRow:=caseNumber(i);
       CellNum:=IntToStr(LineNumber);
       CellText:=trim(Excel.Range[CellRow+CellNum]);
-      RemontkaText[i]:=CellText;
+      RemontkaText[i]:=TrimSeparator(CellText);
       if LineNumber>5000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
       end;
-
     if  (length(RemontkaText[1])=0)and(length(RemontkaText[2])=0)
            and (length(RemontkaText[3])=0)and(length(RemontkaText[4])=0)
       then
         begin
-        LogRemText(RemontkaText);
-        MemoLog.Lines.Add('Найдена пустая строка');
+        //LogRemText(RemontkaText);
+        //MemoLog.Lines.Add('Найдена пустая строка');
         IsEmptyLine:=true;
         Continue;
         end;
     Amount:=StrToIntDef(RemontkaText[5],-1);
     if (Amount = 0) then
       begin
-      LogRemText(RemontkaText);
-      MemoLog.Lines.Add('Товар исключается, нулевое количество. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+      if not CheckBoxZeroOstatki.Checked then LogRemText(RemontkaText);
+      if not CheckBoxZeroOstatki.Checked then MemoLog.Lines.Add('Товар исключается, нулевое количество. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
       isExcludedLine:=true;
       end;
     if (Amount = -1) then
@@ -477,8 +480,8 @@ if FileOpenDialog1.Execute then
     Price:=StrToFloatDef(RemontkaText[11],-1);
     if (Price = 0) then
       begin
-      LogRemText(RemontkaText);
-      MemoLog.Lines.Add('Товар исключается, нулевая цена. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+      if not CheckBoxZeroPrice.Checked then LogRemText(RemontkaText);
+      if not CheckBoxZeroPrice.Checked then MemoLog.Lines.Add('Товар исключается, нулевая цена. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
       IsExcludedLine:=true;
       end;
     if (Price = -1) then
@@ -538,37 +541,39 @@ Mapping[12].PromName:= 'Ссылка_изображения';
 Mapping[12].Quoted:= true;
 Mapping[13].PromName:= 'Наличие';
 Mapping[13].Quoted:= false;
-Mapping[14].PromName:= 'Скидка';
+Mapping[14].PromName:= 'Количество';
 Mapping[14].Quoted:= false;
-Mapping[15].PromName:= 'Производитель';
+Mapping[15].PromName:= 'Скидка';
 Mapping[15].Quoted:= false;
-Mapping[16].PromName:= 'Страна_производитель';
+Mapping[16].PromName:= 'Производитель';
 Mapping[16].Quoted:= false;
-Mapping[17].PromName:= 'Номер_группы';
-Mapping[17].Quoted:= true;
-Mapping[18].PromName:= 'Адрес_подраздела';
-Mapping[18].Quoted:= false;
-Mapping[19].PromName:= 'Идентификатор_товара';
+Mapping[17].PromName:= 'Страна_производитель';
+Mapping[17].Quoted:= false;
+Mapping[18].PromName:= 'Номер_группы';
+Mapping[18].Quoted:= true;
+Mapping[19].PromName:= 'Адрес_подраздела';
 Mapping[19].Quoted:= false;
-Mapping[20].PromName:= 'Уникальный_идентификатор';
+Mapping[20].PromName:= 'Идентификатор_товара';
 Mapping[20].Quoted:= false;
-Mapping[21].PromName:= 'Идентификатор_подраздела';
+Mapping[21].PromName:= 'Уникальный_идентификатор';
 Mapping[21].Quoted:= false;
-Mapping[22].PromName:= 'Идентификатор_группы';
+Mapping[22].PromName:= 'Идентификатор_подраздела';
 Mapping[22].Quoted:= false;
+Mapping[23].PromName:= 'Идентификатор_группы';
+Mapping[23].Quoted:= false;
 Mapping[1].RemontkaName:= 'Код';
-Mapping[2].RemontkaName:= 'Наименование';
-Mapping[3].RemontkaName:= '';
+Mapping[2].RemontkaName:= 'Артикул';
+Mapping[3].RemontkaName:= 'Штрих-код';
 Mapping[4].RemontkaName:= 'Наименование';
-Mapping[5].RemontkaName:= '';
-Mapping[6].RemontkaName:= 'Розничная';
-Mapping[7].RemontkaName:= 'Всегда UAH';
-Mapping[8].RemontkaName:= '';
-Mapping[9].RemontkaName:= '';
-Mapping[10].RemontkaName:= 'Ремонтная';
-Mapping[11].RemontkaName:= '';
-Mapping[12].RemontkaName:= '';
-Mapping[13].RemontkaName:= 'Остаток';
+Mapping[5].RemontkaName:= 'Остаток';
+Mapping[6].RemontkaName:= 'Категория';
+Mapping[7].RemontkaName:= 'Гарантия';
+Mapping[8].RemontkaName:= 'Гарантийный период';
+Mapping[9].RemontkaName:= 'Закупочная цена';
+Mapping[10].RemontkaName:= 'Нулевая';
+Mapping[11].RemontkaName:= 'Цена в Интернете';
+Mapping[12].RemontkaName:= 'Розничная';
+Mapping[13].RemontkaName:= 'Ремонтная';
 Mapping[14].RemontkaName:= '';
 Mapping[15].RemontkaName:= '';
 Mapping[16].RemontkaName:= '';
@@ -578,21 +583,23 @@ Mapping[19].RemontkaName:= '';
 Mapping[20].RemontkaName:= '';
 Mapping[21].RemontkaName:= '';
 Mapping[22].RemontkaName:= '';
-for i:=1 to 22 do Mapping[i].RemontkaNumber:=-999;
+Mapping[23].RemontkaName:= '';
+for i:=1 to 23 do Mapping[i].RemontkaNumber:=-999;
 Mapping[1].RemontkaNumber:=1-1;
 Mapping[2].RemontkaNumber:=4-1;
 Mapping[4].RemontkaNumber:=4-1;
 Mapping[5].RemontkaNumber:=-5;
-Mapping[6].RemontkaNumber:=12-1;
+Mapping[6].RemontkaNumber:=11-1;
 Mapping[7].RemontkaNumber:=-7;
 Mapping[8].RemontkaNumber:=-8;
 Mapping[9].RemontkaNumber:=-9;
-Mapping[10].RemontkaNumber:=12-1;//Исключаем до выяснения с Заказчиком
+Mapping[10].RemontkaNumber:=11-1;//Исключаем до выяснения с Заказчиком
 Mapping[11].RemontkaNumber:=-11;
 Mapping[13].RemontkaNumber:=5-1;
-Mapping[19].RemontkaNumber:=2-1;
+Mapping[14].RemontkaNumber:=5-1;
+Mapping[20].RemontkaNumber:=2-1;
 //Mapping[22].RemontkaNumber:=6-1;
-Mapping[22].RemontkaNumber:=-999;//Не обрабатываем идентификатор группы
+Mapping[23].RemontkaNumber:=-999;//Не обрабатываем идентификатор группы
 end;
 
 procedure TFormMain.FormCreate(Sender: TObject);
@@ -628,26 +635,31 @@ end;
 function TFormMain.PrintPromText(pPromText: array of string): string;
 var i, RemNumber:integer;
 Price:Extended;
+Ostatki:integer;
+Nalichie:string;
 begin
 Result:='';
-if (Mapping[1].RemontkaNumber>=0) then Result:=PlusQuotes(pPromText[Mapping[1].RemontkaNumber],Mapping[i].Quoted);
-for I := 2 to 22 do
+if (Mapping[1].RemontkaNumber>=0) then Result:=PlusQuotes(pPromText[Mapping[1].RemontkaNumber],Mapping[1].Quoted);
+for I := 2 to 23 do
   begin
     Result:=Result+FileSeparator;
     RemNumber:=Mapping[i].RemontkaNumber;
-     case RemNumber of
+    case RemNumber of
     -999:;
     -5: Result:=Result+PlusQuotes('u',Mapping[i].Quoted);
     -7: Result:=Result+PlusQuotes('UAH',Mapping[i].Quoted);
     -8: Result:=Result+PlusQuotes('шт.',Mapping[i].Quoted);
     -9: Result:=Result+PlusQuotes('1',Mapping[i].Quoted);
     -11: Result:=Result+PlusQuotes('2',Mapping[i].Quoted);
-    4: if (StrToIntDef(pPromText[Mapping[i].RemontkaNumber],0)>0)
-          then Result:=Result+PlusQuotes('+',Mapping[i].Quoted)
-          else Result:=Result+PlusQuotes('-',Mapping[i].Quoted);
-         //Заменяем количество на Наличие + или -
+    4: begin
+        Ostatki:=StrToIntDef(pPromText[Mapping[i].RemontkaNumber],0);
+        if (Ostatki>0)
+          then Nalichie:=PlusQuotes('+',Mapping[i].Quoted)
+          else Nalichie:=PlusQuotes('-',Mapping[i].Quoted);
+        if I=13 then Result:=Result+Nalichie;
+        if i=14 then Result:=Result+IntToStr(Ostatki);
+        end;
     else Result:=Result+PlusQuotes(pPromText[Mapping[i].RemontkaNumber],Mapping[i].Quoted);
-        //Заменяем цену 0 на цену  0.00001
     if (i=6) then
       begin
       Price:=StrToFloatDef(pPromText[Mapping[i].RemontkaNumber],-1);
@@ -670,6 +682,21 @@ for I := 2 to 22 do
   end;
  end;
 
+function TFormMain.TrimSeparator(const Str: string): string;
+var where:integer;
+Local:string;
+begin
+Local:=Str;
+if Pos(FileSeparator, Str)=0 then Result:=Local
+else
+  while Pos(FileSeparator, Local)>0 do
+  begin
+  where:=Pos(FileSeparator, Local);
+  Local:=Copy(Local, 1, where-1) + Copy(Local, where+1, length(Local));
+  end;
+  Result:=Local;
+end;
+
 function TFormMain.WriteRemontkaHeader: string;
   var i:integer;
 begin
@@ -685,11 +712,12 @@ function TFormMain.WritePromHeaders: string;
 var i:integer;
 begin
 Result:=PromHeader[1];
-for I := 2 to 22 do
+for I := 2 to 23 do
   begin
     Result:=Result+FileSeparator+PromHeader[i];
   end;
-
+//Исправить позже. Неверно показывается последняя колонка для XLS
+Result:=Result+FileSeparator;
 end;
 
 end.
