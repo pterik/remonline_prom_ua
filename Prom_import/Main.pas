@@ -458,35 +458,32 @@ sltbU: TSqliteUniTable;
 slDBPath: string;
 iID: integer;
 begin
-if sltb = nil then
-exit;
-self.Image1.Picture.Graphic := nil;
-slDBPath := ExtractFilepath(application.exename) + 'test.db';
-if not FileExists(slDBPath) then
-exit;
-sldb := TSQLiteDatabase.Create(slDBPath);
-try
-iID := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
-sltbU := sldb.GetUniTable('SELECT picture FROM testtable where ID = ' + inttostr(iID));
-try
-ms := sltbU.FieldAsBlob(sltbU.FieldIndex['picture']);
-if (ms = nil) then
-exit;
-try
-ms.Position := 0;
-pic := TJPEGImage.Create;
-pic.LoadFromStream(ms);
-self.Image1.Picture.Graphic := pic;
-pic.Free;
-finally
-ms.Free;
-end;
-finally
-sltbU.Free;
-end;
-finally
-sldb.Free;
-end;
+  if sltb = nil then exit;
+  self.Image1.Picture.Graphic := nil;
+  slDBPath := ExtractFilepath(application.exename) + 'test.db';
+  if not FileExists(slDBPath) then exit;
+  sldb := TSQLiteDatabase.Create(slDBPath);
+  try
+    iID := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
+    sltbU := sldb.GetUniTable('SELECT picture FROM testtable where ID = ' + inttostr(iID));
+    try
+      ms := sltbU.FieldAsBlob(sltbU.FieldIndex['picture']);
+      if (ms = nil) then exit;
+      try
+        ms.Position := 0;
+        pic := TJPEGImage.Create;
+        pic.LoadFromStream(ms);
+        self.Image1.Picture.Graphic := pic;
+        pic.Free;
+      finally
+        ms.Free;
+      end;
+    finally
+      sltbU.Free;
+    end;
+  finally
+  sldb.Free;
+  end;
 end;
 
 function TFormMain.CaseNumber(k: integer): string;
