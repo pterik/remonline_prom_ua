@@ -12,7 +12,6 @@ object FormMain: TFormMain
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
-  OnDblClick = FormDblClick
   DesignSize = (
     980
     563)
@@ -40,11 +39,10 @@ object FormMain: TFormMain
     Visible = False
     WantTabs = True
     WordWrap = False
-    ExplicitWidth = 817
   end
   object BitBtnXLS: TBitBtn
     Left = 8
-    Top = 522
+    Top = 530
     Width = 121
     Height = 25
     Anchors = [akLeft, akBottom]
@@ -64,12 +62,11 @@ object FormMain: TFormMain
     NumGlyphs = 2
     TabOrder = 2
     OnClick = BitBtnCloseClick
-    ExplicitLeft = 750
   end
   object MemoLog: TMemo
     Left = 8
     Top = 120
-    Width = 964
+    Width = 417
     Height = 345
     Anchors = [akLeft, akRight, akBottom]
     Lines.Strings = (
@@ -79,8 +76,8 @@ object FormMain: TFormMain
     TabOrder = 3
   end
   object BitBtnCSV: TBitBtn
-    Left = 145
-    Top = 522
+    Left = 153
+    Top = 530
     Width = 121
     Height = 25
     Anchors = [akLeft, akBottom]
@@ -119,6 +116,106 @@ object FormMain: TFormMain
     Checked = True
     State = cbChecked
     TabOrder = 7
+  end
+  object btnTest: TButton
+    Left = 647
+    Top = 530
+    Width = 113
+    Height = 25
+    Caption = 'Test SQLite 3'
+    TabOrder = 8
+    OnClick = btnTestClick
+  end
+  object Panel1: TPanel
+    Left = 479
+    Top = 136
+    Width = 450
+    Height = 185
+    Anchors = [akRight, akBottom]
+    Caption = 'Panel1'
+    TabOrder = 9
+    object Label4: TLabel
+      Left = 39
+      Top = 5
+      Width = 11
+      Height = 13
+      Caption = 'ID'
+    end
+    object Label2: TLabel
+      Left = 23
+      Top = 37
+      Width = 27
+      Height = 13
+      Caption = 'Name'
+    end
+    object Label3: TLabel
+      Left = 9
+      Top = 65
+      Width = 41
+      Height = 13
+      Caption = 'Number:'
+    end
+    object Label1: TLabel
+      Left = 22
+      Top = 97
+      Width = 28
+      Height = 13
+      Caption = 'Notes'
+    end
+    object Image1: TImage
+      Left = 264
+      Top = 5
+      Width = 161
+      Height = 165
+      Proportional = True
+      Stretch = True
+    end
+    object ebID: TEdit
+      Left = 68
+      Top = 29
+      Width = 173
+      Height = 21
+      TabOrder = 0
+    end
+    object ebName: TEdit
+      Left = 68
+      Top = 56
+      Width = 173
+      Height = 21
+      TabOrder = 1
+    end
+    object ebNumber: TEdit
+      Left = 68
+      Top = 2
+      Width = 173
+      Height = 21
+      TabOrder = 2
+    end
+    object memNotes: TMemo
+      Left = 72
+      Top = 83
+      Width = 169
+      Height = 89
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -16
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      Lines.Strings = (
+        '')
+      ParentFont = False
+      ScrollBars = ssVertical
+      TabOrder = 3
+    end
+  end
+  object btnLoadImage: TButton
+    Left = 791
+    Top = 530
+    Width = 82
+    Height = 25
+    Caption = 'Load image'
+    TabOrder = 10
+    OnClick = btnLoadImageClick
   end
   object FileOpenDialog1: TFileOpenDialog
     DefaultExtension = '*.xls'

@@ -85,7 +85,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Buttons, ComObj,
-  Vcl.ComCtrls;
+  Vcl.ComCtrls, SQLiteTable3, jpeg, System.UITypes, Vcl.ExtCtrls;
 
 const RemontkaHeader : array [1..13] of string = ('Код','Артикул','Штрих-код','Наименование','Остаток','Категория','Гарантия',
                            'Гарантийный период','Закупочная цена','Нулевая','цена в интернете', 'Розничная','Ремонтная');
@@ -116,15 +116,29 @@ type
     PB: TProgressBar;
     CheckBoxZeroPrice: TCheckBox;
     CheckBoxZeroOstatki: TCheckBox;
+    btnTest: TButton;
+    Panel1: TPanel;
+    Label4: TLabel;
+    ebID: TEdit;
+    Label2: TLabel;
+    ebName: TEdit;
+    Label3: TLabel;
+    ebNumber: TEdit;
+    Label1: TLabel;
+    memNotes: TMemo;
+    Image1: TImage;
+    btnLoadImage: TButton;
     procedure BitBtnCloseClick(Sender: TObject);
     procedure BitBtnXLSClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
     procedure BitBtnCSVClick(Sender: TObject);
-    procedure FormDblClick(Sender: TObject);
+    procedure btnTestClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure btnLoadImageClick(Sender: TObject);
   private
     { Private declarations }
     Mapping:array [1..23] of Mapping_rec;
     RemontkaText: array[1..23] of string;
+    sltb: TSQLIteTable;
     function isRemontkaHeaderCorrect(Where:integer; Value:string):boolean;
     function WritePromHeaders:string;
     function WriteRemontkaHeader: string;
@@ -135,6 +149,9 @@ type
     function PlusQuotes(Str:string; isQuoted:boolean):string;
     function TrimSeparator(const Str:string):string;
     procedure CopyMemoToXLS(FileName:string; Lines:integer);
+    procedure UpdateFields;
+    procedure UpdateImage;
+    procedure FormDblClick(Sender: TObject);
 
   public
     { Public declarations }
@@ -275,6 +292,162 @@ begin
   end;
 end;
 
+procedure TFormMain.btnLoadImageClick(Sender: TObject);
+var
+slDBpath: string;
+sldb: TSQLiteDatabase;
+iID: integer;
+fs: TFileStream;
+begin
+slDBPath := ExtractFilepath(application.exename) + 'test.db';
+if not FileExists(slDBPath) then
+  begin
+  MessageDLg('Test.db does not exist. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
+  exit;
+  end;
+if sltb = nil then exit;
+sldb := TSQLiteDatabase.Create(slDBPath);
+try
+if sltb.EOF then
+  begin
+  MessageDLg('Table is at end of file.',mtInformation,[mbOK],0);
+  exit;
+  end;
+iID := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
+//load an image
+fs := TFileStream.Create(ExtractFileDir(application.ExeName) + '\sunset.jpg',fmOpenRead);
+try
+//insert the image into the db
+sldb.UpdateBlob('UPDATE testtable set picture = ? WHERE ID = ' + inttostr(iID),fs);
+finally
+fs.Free;
+end;
+finally
+sldb.Free;
+end;
+updateImage;
+end;
+
+procedure TFormMain.btnTestClick(Sender: TObject);
+var
+sldb: TSQLiteDatabase;
+sSQL: String;
+ts: TStringStream;
+
+begin
+sldb := TSQLiteDatabase.Create( ExtractFilepath(application.exename) + 'test.db');
+try
+
+if sldb.TableExists('testTable') then begin
+sSQL := 'DROP TABLE testtable';
+sldb.execsql(sSQL);
+end;
+
+sSQL := 'CREATE TABLE testtable ([ID] INTEGER PRIMARY KEY,[OtherID] INTEGER NULL,';
+sSQL := sSQL + '[Name] VARCHAR (255),[Number] FLOAT, [notes] BLOB, [picture] BLOB COLLATE NOCASE);';
+
+sldb.execsql(sSQL);
+
+sldb.execsql('CREATE INDEX TestTableName ON [testtable]([Name]);');
+
+//begin a transaction
+sldb.BeginTransaction;
+
+sSQL := 'INSERT INTO testtable(Name,OtherID,Number) VALUES ("Some Name",4,587.6594);';
+//do the insert
+sldb.ExecSQL(sSQL);
+
+
+sSQL := 'INSERT INTO testtable(Name,OtherID,Number,Notes) VALUES ("Another Name",12,4758.3265,"More notes");';
+//do the insert
+sldb.ExecSQL(sSQL);
+
+//end the transaction
+sldb.Commit;
+
+//add the notes using a parameter
+ts := TStringStream.Create('Here are some notes with a unicode smiley: ' + char($263a),TEncoding.UTF8);
+try
+
+//insert the text into the db
+sldb.UpdateBlob('UPDATE testtable set notes = ? WHERE OtherID = 4',ts);
+
+finally
+ts.Free;
+end;
+
+if sltb<> nil then
+sltb.Free;
+
+//query the data
+sltb := slDb.GetTable('SELECT * FROM testtable');
+
+if sltb.Count > 0 then
+begin
+//display first row
+
+updateFields;
+
+end;
+
+finally
+sldb.Free;
+
+end;
+
+end;
+
+procedure TFormMain.UpdateFields;
+var
+Notes: string;
+begin
+ebName.Text := sltb.FieldAsString(sltb.FieldIndex['Name']);
+ebID.Text := inttostr(sltb.FieldAsInteger(sltb.FieldIndex['ID']));
+ebNumber.Text := floattostr( sltb.FieldAsDouble(sltb.FieldIndex['Number']));
+Notes :=  sltb.FieldAsBlobText(sltb.FieldIndex['Notes']);
+memNotes.Text := notes;
+updateImage;
+end;
+
+procedure TFormMain.UpdateImage;
+var
+ms: TMemoryStream;
+pic: TJPegImage;
+sldb: TSqliteDatabase;
+sltbU: TSqliteUniTable;
+slDBPath: string;
+iID: integer;
+begin
+if sltb = nil then
+exit;
+self.Image1.Picture.Graphic := nil;
+slDBPath := ExtractFilepath(application.exename) + 'test.db';
+if not FileExists(slDBPath) then
+exit;
+sldb := TSQLiteDatabase.Create(slDBPath);
+try
+iID := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
+sltbU := sldb.GetUniTable('SELECT picture FROM testtable where ID = ' + inttostr(iID));
+try
+ms := sltbU.FieldAsBlob(sltbU.FieldIndex['picture']);
+if (ms = nil) then
+exit;
+try
+ms.Position := 0;
+pic := TJPEGImage.Create;
+pic.LoadFromStream(ms);
+self.Image1.Picture.Graphic := pic;
+pic.Free;
+finally
+ms.Free;
+end;
+finally
+sltbU.Free;
+end;
+finally
+sldb.Free;
+end;
+end;
 function TFormMain.CaseNumber(k: integer): string;
 begin
 case k of
@@ -385,8 +558,7 @@ try
 end;
 
 procedure TFormMain.BitBtnCSVClick(Sender: TObject);
-var F:TextFile;
-FileName:string;
+var FileName:string;
 CsvFileName:string;
 Excel: Variant;
 FString:string;
@@ -721,3 +893,4 @@ Result:=Result+FileSeparator;
 end;
 
 end.
+
