@@ -128,12 +128,18 @@ type
     memNotes: TMemo;
     Image1: TImage;
     btnLoadImage: TButton;
+    btnBackup: TButton;
+    btnBack: TButton;
+    btnForward: TButton;
     procedure BitBtnCloseClick(Sender: TObject);
     procedure BitBtnXLSClick(Sender: TObject);
     procedure BitBtnCSVClick(Sender: TObject);
     procedure btnTestClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnLoadImageClick(Sender: TObject);
+    procedure btnBackupClick(Sender: TObject);
+    procedure btnBackClick(Sender: TObject);
+    procedure btnForwardClick(Sender: TObject);
   private
     { Private declarations }
     Mapping:array [1..23] of Mapping_rec;
@@ -292,6 +298,60 @@ begin
   end;
 end;
 
+procedure TFormMain.btnBackClick(Sender: TObject);
+begin
+  if sltb = nil then begin
+  MessageDLg('Table not initialised. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
+  exit;
+  end;
+
+  if not sltb.BOF then
+  begin
+  sltb.Previous;
+  updateFields;
+  end;
+end;
+
+procedure TFormMain.btnBackupClick(Sender: TObject);
+var
+slDBpath: string;
+sldb: TSQLiteDatabase;
+sldbBak: TSQLiteDatabase;
+
+begin
+slDBPath := ExtractFilepath(application.exename);
+if not FileExists(slDBPath + 'test.db') then
+  begin
+  MessageDLg('Test.db does not exist. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
+  exit;
+  end;
+sldb := TSQLiteDatabase.Create(slDBPath + 'test.db');
+  try
+  sldbBak := TSQLiteDatabase.Create(slDBPath + 'testbak.db');
+    try
+    sldb.Backup(sldbBak);
+    finally
+    sldbBak.Free;
+    end;
+  finally
+  sldb.Free;
+  end;
+end;
+
+procedure TFormMain.btnForwardClick(Sender: TObject);
+begin
+  if sltb = nil then begin
+  MessageDLg('Table not initialised. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
+  exit;
+  end;
+
+  if not slTb.IsLastRow then
+  begin
+  sltb.Next;
+  updateFields;
+  end;
+end;
+
 procedure TFormMain.btnLoadImageClick(Sender: TObject);
 var
 slDBpath: string;
@@ -308,20 +368,20 @@ if not FileExists(slDBPath) then
 if sltb = nil then exit;
 sldb := TSQLiteDatabase.Create(slDBPath);
 try
-if sltb.EOF then
-  begin
-  MessageDLg('Table is at end of file.',mtInformation,[mbOK],0);
-  exit;
+  if sltb.EOF then
+    begin
+    MessageDLg('Table is at end of file.',mtInformation,[mbOK],0);
+    exit;
+    end;
+  iID := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
+  //load an image
+  fs := TFileStream.Create(ExtractFileDir(application.ExeName) + '\sunset.jpg',fmOpenRead);
+  try
+    //insert the image into the db
+    sldb.UpdateBlob('UPDATE testtable set picture = ? WHERE ID = ' + inttostr(iID),fs);
+  finally
+    fs.Free;
   end;
-iID := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
-//load an image
-fs := TFileStream.Create(ExtractFileDir(application.ExeName) + '\sunset.jpg',fmOpenRead);
-try
-//insert the image into the db
-sldb.UpdateBlob('UPDATE testtable set picture = ? WHERE ID = ' + inttostr(iID),fs);
-finally
-fs.Free;
-end;
 finally
 sldb.Free;
 end;
@@ -333,68 +393,48 @@ var
 sldb: TSQLiteDatabase;
 sSQL: String;
 ts: TStringStream;
-
 begin
 sldb := TSQLiteDatabase.Create( ExtractFilepath(application.exename) + 'test.db');
-try
-
-if sldb.TableExists('testTable') then begin
-sSQL := 'DROP TABLE testtable';
-sldb.execsql(sSQL);
-end;
-
-sSQL := 'CREATE TABLE testtable ([ID] INTEGER PRIMARY KEY,[OtherID] INTEGER NULL,';
-sSQL := sSQL + '[Name] VARCHAR (255),[Number] FLOAT, [notes] BLOB, [picture] BLOB COLLATE NOCASE);';
-
-sldb.execsql(sSQL);
-
-sldb.execsql('CREATE INDEX TestTableName ON [testtable]([Name]);');
-
-//begin a transaction
-sldb.BeginTransaction;
-
-sSQL := 'INSERT INTO testtable(Name,OtherID,Number) VALUES ("Some Name",4,587.6594);';
-//do the insert
-sldb.ExecSQL(sSQL);
-
-
-sSQL := 'INSERT INTO testtable(Name,OtherID,Number,Notes) VALUES ("Another Name",12,4758.3265,"More notes");';
-//do the insert
-sldb.ExecSQL(sSQL);
-
-//end the transaction
-sldb.Commit;
-
-//add the notes using a parameter
-ts := TStringStream.Create('Here are some notes with a unicode smiley: ' + char($263a),TEncoding.UTF8);
-try
-
-//insert the text into the db
-sldb.UpdateBlob('UPDATE testtable set notes = ? WHERE OtherID = 4',ts);
-
-finally
-ts.Free;
-end;
-
-if sltb<> nil then
-sltb.Free;
-
-//query the data
-sltb := slDb.GetTable('SELECT * FROM testtable');
-
-if sltb.Count > 0 then
-begin
-//display first row
-
-updateFields;
-
-end;
-
-finally
-sldb.Free;
-
-end;
-
+  try
+  if sldb.TableExists('testTable') then
+  begin
+  sSQL := 'DROP TABLE testtable';
+  sldb.execsql(sSQL);
+  end;
+  sSQL := 'CREATE TABLE testtable ([ID] INTEGER PRIMARY KEY,[OtherID] INTEGER NULL,';
+  sSQL := sSQL + '[Name] VARCHAR (255),[Number] FLOAT, [notes] BLOB, [picture] BLOB COLLATE NOCASE);';
+  sldb.execsql(sSQL);
+  sldb.execsql('CREATE INDEX TestTableName ON [testtable]([Name]);');
+  //begin a transaction
+  sldb.BeginTransaction;
+  sSQL := 'INSERT INTO testtable(Name,OtherID,Number) VALUES ("Some Name",4,587.6594);';
+  //do the insert
+  sldb.ExecSQL(sSQL);
+  sSQL := 'INSERT INTO testtable(Name,OtherID,Number,Notes) VALUES ("Another Name",12,4758.3265,"More notes");';
+  //do the insert
+  sldb.ExecSQL(sSQL);
+  //end the transaction
+  sldb.Commit;
+  //add the notes using a parameter
+  ts := TStringStream.Create('Here are some notes with a unicode smiley: ' + char($263a),TEncoding.UTF8);
+    try
+    //insert the text into the db
+    sldb.UpdateBlob('UPDATE testtable set notes = ? WHERE OtherID = 4',ts);
+    finally
+      ts.Free;
+    end;
+  if sltb<> nil then
+  sltb.Free;
+  //query the data
+  sltb := slDb.GetTable('SELECT * FROM testtable');
+  if sltb.Count > 0 then
+  begin
+    //display first row
+    updateFields;
+  end;
+  finally
+  sldb.Free;
+  end;
 end;
 
 procedure TFormMain.UpdateFields;
@@ -448,6 +488,7 @@ finally
 sldb.Free;
 end;
 end;
+
 function TFormMain.CaseNumber(k: integer): string;
 begin
 case k of

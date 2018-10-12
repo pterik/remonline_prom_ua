@@ -118,7 +118,7 @@ object FormMain: TFormMain
     TabOrder = 7
   end
   object btnTest: TButton
-    Left = 647
+    Left = 599
     Top = 530
     Width = 113
     Height = 25
@@ -209,13 +209,40 @@ object FormMain: TFormMain
     end
   end
   object btnLoadImage: TButton
-    Left = 791
+    Left = 718
     Top = 530
     Width = 82
     Height = 25
     Caption = 'Load image'
     TabOrder = 10
     OnClick = btnLoadImageClick
+  end
+  object btnBackup: TButton
+    Left = 806
+    Top = 530
+    Width = 90
+    Height = 25
+    Caption = 'Backup'
+    TabOrder = 11
+    OnClick = btnBackupClick
+  end
+  object btnBack: TButton
+    Left = 760
+    Top = 499
+    Width = 40
+    Height = 25
+    Caption = '<<'
+    TabOrder = 12
+    OnClick = btnBackClick
+  end
+  object btnForward: TButton
+    Left = 806
+    Top = 499
+    Width = 40
+    Height = 25
+    Caption = '>>'
+    TabOrder = 13
+    OnClick = btnForwardClick
   end
   object FileOpenDialog1: TFileOpenDialog
     DefaultExtension = '*.xls'
