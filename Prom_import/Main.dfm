@@ -66,7 +66,7 @@ object FormMain: TFormMain
   object MemoLog: TMemo
     Left = 8
     Top = 120
-    Width = 417
+    Width = 657
     Height = 345
     Anchors = [akLeft, akRight, akBottom]
     Lines.Strings = (
@@ -127,10 +127,10 @@ object FormMain: TFormMain
     OnClick = btnTestClick
   end
   object Panel1: TPanel
-    Left = 479
-    Top = 136
-    Width = 450
-    Height = 185
+    Left = 706
+    Top = 120
+    Width = 255
+    Height = 345
     Anchors = [akRight, akBottom]
     Caption = 'Panel1'
     TabOrder = 9
@@ -163,10 +163,10 @@ object FormMain: TFormMain
       Caption = 'Notes'
     end
     object Image1: TImage
-      Left = 264
-      Top = 5
-      Width = 161
-      Height = 165
+      Left = 16
+      Top = 178
+      Width = 209
+      Height = 149
       Proportional = True
       Stretch = True
     end

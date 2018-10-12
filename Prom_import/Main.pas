@@ -71,11 +71,11 @@ type
     function CaseNumber(k:integer):string;
     procedure FillMapping;
     function PrintPromText(pPromText:array of string):string;
-    procedure SavePromTextToSQLite(pPromText:array of string);
     function LogRemText(RemText:array of string):string;
     function PlusQuotes(Str:string; isQuoted:boolean):string;
     function TrimSeparator(const Str:string):string;
     procedure CopyMemoToXLS(FileName:string; Lines:integer);
+    procedure SavePromTextToSQLite(pPromArray:array of string);
     procedure UpdateFields;
     procedure UpdateImage;
     procedure FormDblClick(Sender: TObject);
@@ -203,6 +203,7 @@ begin
       if not IsEmptyLine and not IsExcludedLine then
         begin
         PrintText:=PrintPromText(RemontkaText);
+        SavePromTextToSQLite(RemontkaText);
         if PrintText<>'' then MemoTxt.Lines.Add(PrintText);
         end;
       inc(LineNumber);
@@ -813,9 +814,22 @@ for I := 2 to 23 do
   end;
  end;
 
-procedure TFormMain.SavePromTextToSQLite(pPromText: array of string);
+procedure TFormMain.SavePromTextToSQLite(pPromArray: array of string);
+var
+strSQL: String;
+S3DB:TSQLiteDatabase;
+S3Tbl: TSQLIteTable;
 begin
-
+  S3DB := TSQLiteDatabase.Create( ExtractFilepath(application.exename) + 'database.sqlite3');
+  try
+  S3DB.BeginTransaction;
+  strSQL := 'INSERT INTO Remontka_items(Name,Amount, Repair_price) VALUES ("'+pPromArray[3]+'","'+pPromArray[4]+'","'+pPromArray[10]+'");';
+  //MemoLog.Lines.Add(strSQL);
+  S3DB.ExecSQL(strSQL);
+  S3DB.Commit;
+  finally
+  S3DB.Free;
+  end;
 end;
 
 function TFormMain.TrimSeparator(const Str: string): string;
