@@ -51,6 +51,7 @@ type
     btnBackup: TButton;
     btnBack: TButton;
     btnForward: TButton;
+    FileOpenDialog2: TFileOpenDialog;
     procedure BitBtnCloseClick(Sender: TObject);
     procedure BitBtnXLSClick(Sender: TObject);
     procedure BitBtnCSVClick(Sender: TObject);
@@ -64,8 +65,11 @@ type
     { Private declarations }
     Mapping:array [1..23] of Mapping_rec;
     RemontkaText: array[1..23] of string;
+    PromText: array[1..23] of string;
+    DBName:string;
     sltb: TSQLIteTable;
     function isRemontkaHeaderCorrect(Where:integer; Value:string):boolean;
+    function isPromHeaderCorrect(Where: integer; Value: string): boolean;
     function WritePromHeaders:string;
     function WriteRemontkaHeader: string;
     function CaseNumber(k:integer):string;
@@ -79,6 +83,9 @@ type
     procedure UpdateFields;
     procedure UpdateImage;
     procedure FormDblClick(Sender: TObject);
+    procedure EmptySQLite(DName:string);
+    procedure LoadRemontkaToSQLite;
+    procedure LoadPromToSQLite;
 
   public
     { Public declarations }
@@ -108,116 +115,19 @@ LineNumber:integer;
 Amount, I: Integer;
 begin
 MemoLog.Clear;
-if FileOpenDialog1.Execute then
-begin
-    FileName:=FileOpenDialog1.FileName;
-    MemoLog.Lines.Add('Обрабатывается файл '+FileName);
-    try
-      try
-       ExcelIn := GetActiveOleObject('Excel.Application');
-       except on EOLESysError do
-       ExcelIn := CreateOleObject('Excel.Application');
-      end;
-      ExcelIn.Visible := False;
-      ExcelIn.WindowState := -4140;
-      ExcelIn.DisplayAlerts := False;
-      ExcelIn.WorkBooks.Open(FileOpenDialog1.FileName, 0 , true);
-      ExcelIn.WorkSheets[1].Activate;
-      MemoTxt.Clear;
-      MemoTxt.Lines.Add(WritePromHeaders);
-      LineNumber:=1;
-      PB.Position:=0;
-      PB.Min:=1;
-      PB.Max:=300;
-      PB.Step:=1;
-      PB.StepIt;
-      for I := 1 to 13 do
-      begin
-        CellRow:=caseNumber(i);
-        CellNum:='1';
-        CellText:=Trim(ExcelIn.Range[CellRow+CellNum]);
-        CellText:=TrimSeparator(CellText);
-        if not isRemontkaHeaderCorrect(i, CellText) then
-          begin
-            MemoLog.Lines.Add('Неверный заголовок файла, проведите выгрузку "Остатки на складе.xls" из remonline ещё раз     '
-                                +CellRow+CellNum+'!'+'!'+CellText);
-            ShowMessage('Неверный файл остатоков, он создан нажатием на кнопку "Создать отчёт"'+chr(10)+chr(13)
-                          +'Зайдите на сайт remonline ещё раз и выгрузите файл остатков с помощью "бутерброда"'+chr(10)+chr(13)
-                          +'Выберите вкладку "Склад", бутерброд(три полоски) находится возле Строки "Наличие"');
-            exit;
-          end;
-      end;
-      LineNumber:=2;
-      isEmptyLine:=false;
-      while not IsEmptyLine do
-      begin
-      isExcludedLine:=false;
-      PB.StepIt;
-      for I := 1 to 13 do
-        begin
-        CellRow:=caseNumber(i);
-        CellNum:=IntToStr(LineNumber);
-        CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
-        RemontkaText[i]:=TrimSeparator(CellText);
-        if (i=1) and (length(RemontkaText[i])>0) then RemontkaText[i]:=''''+RemontkaText[i];
-        if LineNumber>50000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
-        end;
-      //
-      if  (length(RemontkaText[1])=0)and(length(RemontkaText[2])=0)
-           and (length(RemontkaText[3])=0)and(length(RemontkaText[4])=0)
-      then
-        begin
-        //LogRemText(RemontkaText);
-        //MemoLog.Lines.Add('Найдена пустая строка');
-        IsEmptyLine:=true;
-        Continue;
-        end;
-      Amount:=StrToIntDef(RemontkaText[5],-1);
-      if (Amount = 0) then
-        begin
-        if not CheckBoxZeroOstatki.Checked then LogRemText(RemontkaText);
-        if not CheckBoxZeroOstatki.Checked then MemoLog.Lines.Add('Товар исключается, нулевое количество. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
-        isExcludedLine:=true;
-        end;
-      if (Amount = -1) then
-        begin
-        LogRemText(RemontkaText);
-        MemoLog.Lines.Add('Товар с кодом "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
-        MemoLog.Lines.Add('Товар исключается, количество="'+RemontkaText[5]+'" не является числом. Сообщите разработчику.');
-        IsExcludedLine:=true;
-        end;
-      Price:=StrToFloatDef(RemontkaText[11],-1);
-      if (Price = 0) then
-        begin
-        if not CheckBoxZeroPrice.Checked then LogRemText(RemontkaText);
-        if not CheckBoxZeroPrice.Checked then MemoLog.Lines.Add('Товар исключается, нулевая цена. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
-        IsExcludedLine:=true;
-        end;
-      if (Price = -1) then
-        begin
-        LogRemText(RemontkaText);
-        MemoLog.Lines.Add('Товар с кодом "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
-        MemoLog.Lines.Add('Товар исключается, цена ="'+RemontkaText[11]+'" отображается неверно. Сообщите разработчику.');
-        isExcludedLine:=true;
-        end;
-      if not IsEmptyLine and not IsExcludedLine then
-        begin
-        PrintText:=PrintPromText(RemontkaText);
-        SavePromTextToSQLite(RemontkaText);
-        if PrintText<>'' then MemoTxt.Lines.Add(PrintText);
-        end;
-      inc(LineNumber);
-      end;
-    finally
-      ExcelIn.ActiveWorkbook.Close;
-      ExcelIn.Application.Quit;
-    end;
-
-  if LowerCase(ExtractFileExt(FileName))='.xls' then FileName:=LowerCase(FileName+'x');
-  CopyMemoToXLS(ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName), LineNumber);
-  MemoLog.Lines.Add('Прайс готов для загрузки: '+ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName));
-  Pb.Position:=PB.Max;
-  end;
+if not FileOpenDialog1.Execute then exit;
+EmptySQLite(DBName);
+FileName:=FileOpenDialog1.FileName;
+MemoLog.Lines.Add('Обрабатывается файл '+FileName);
+LoadRemontkaToSQLite;
+if LowerCase(ExtractFileExt(FileName))='.xls' then FileName:=LowerCase(FileName+'x');
+Pb.Position:=PB.Max div 2;
+MemoLog.Lines.Add('остатки обработаны, выберите файл prom.ua для загрузки ');
+if not FileOpenDialog2.Execute then exit;
+LoadPromToSQLite;
+CopyMemoToXLS(ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName), LineNumber);
+MemoLog.Lines.Add('Остатки обработаны, файл создан '+ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName));
+Pb.Position:=PB.Max;
 end;
 
 procedure TFormMain.btnBackClick(Sender: TObject);
@@ -736,6 +646,7 @@ end;
 
 procedure TFormMain.FormCreate(Sender: TObject);
 begin
+DBName:=ExtractFilepath(application.exename) + 'database.sqlite3';
 FillMapping;
 end;
 
@@ -749,6 +660,247 @@ function TFormMain.isRemontkaHeaderCorrect(Where:integer; Value: string): boolea
  if trim(Value) = RemontkaHeader[where] then Result:=true else Result:=false;
  if (where=1) and (Value <>'Код') then Result:=false;
  if (where=2) and (Value <>'Артикул') then Result:=false;
+end;
+
+function TFormMain.isPromHeaderCorrect(Where:integer; Value: string): boolean;
+ begin
+ if trim(Value) = PromHeader[where] then Result:=true else Result:=false;
+ if (where=1) and (Value <>'Название_позиции') then Result:=false;
+ if (where=2) and (Value <>'Ключевые_слова') then Result:=false;
+end;
+
+procedure TFormMain.LoadPromToSQLite;
+var
+FileName, PromFileName:string;
+ExcelIn: Variant;
+Price:Extended;
+FString:string;
+PrintText:string;
+FileName1, FileName2:string;
+IsEmptyLine, IsExcludedLine:boolean;
+CellText, CellNum, CellRow:string;
+LineNumber:integer;
+Amount, I: Integer;
+begin
+PromFileName:=FileOpenDialog2.FileName;
+try
+try
+  ExcelIn := GetActiveOleObject('Excel.Application');
+       except on EOLESysError do
+       ExcelIn := CreateOleObject('Excel.Application');
+      end;
+      ExcelIn.Visible := False;
+      ExcelIn.WindowState := -4140;
+      ExcelIn.DisplayAlerts := False;
+      ExcelIn.WorkBooks.Open(PromFileName, 0 , true);
+      ExcelIn.WorkSheets[1].Activate;
+      //MemoTxt.Clear;
+      //MemoTxt.Lines.Add(WritePromHeaders);
+      LineNumber:=1;
+      PB.Position:=0;
+      PB.Min:=1;
+      PB.Max:=300;
+      PB.Step:=1;
+      PB.StepIt;
+      for I := 1 to 13 do
+      begin
+        CellRow:=caseNumber(i);
+        CellNum:='1';
+        CellText:=Trim(ExcelIn.Range[CellRow+CellNum]);
+        CellText:=TrimSeparator(CellText);
+        if not isPromHeaderCorrect(i, CellText) then
+          begin
+            MemoLog.Lines.Add('Неверный заголовок файла '+ExtractFileName(PromFileName)+', найдите файл export*.xls, вместо знака * будут цифры');
+            MemoLog.Lines.Add('Зайдите на сайт prom.ua и выберите "Товары и услуги", затем кнопка "Экспорт" в правом верхнем углу');
+            MemoLog.Lines.Add('Будет отправлено письмо на Ваш ящик, и Вы сможете скачать по ссылке в письме');
+            ShowMessage('Неверный заголовок файла '+ExtractFileName(PromFileName)+', найдите именно файл export*.xls, вместо знака * будут цифры.'+chr(10)+chr(13)
+                          +'Зайдите на сайт prom.ua и выберите "Товары и услуги", затем кнопка "Экспорт" в правом верхнем углу'+chr(10)+chr(13)
+                          +'Будет отправлено письмо на Ваш ящик, и Вы сможете скачать по ссылке в письме');
+            exit;
+          end;
+      end;
+      LineNumber:=2;
+      isEmptyLine:=false;
+      while not IsEmptyLine do
+      begin
+      isExcludedLine:=false;
+      PB.StepIt;
+      for I := 1 to 13 do
+        begin
+        Обрабатываем Prom и сохраняем его поля в SQLite
+        Закончить ниже
+        CellRow:=caseNumber(i);
+        CellNum:=IntToStr(LineNumber);
+        CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
+        PromText[i]:=TrimSeparator(CellText);
+        if (i=1) and (length(RemontkaText[i])>0) then RemontkaText[i]:=''''+RemontkaText[i];
+        if LineNumber>50000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
+        end;
+      //
+      if  (length(PromText[1])=0)and(length(PromText[2])=0)
+           and (length(PromText[3])=0)and(length(PromText[4])=0)
+      then
+        begin
+        //LogRemText(RemontkaText);
+        MemoLog.Lines.Add('Найдена пустая строка');
+        IsEmptyLine:=true;
+        Continue;
+        end;
+      Amount:=StrToIntDef(PromText[5],-1);
+      //if (Amount = 0) then
+      //  begin
+        //if not CheckBoxZeroOstatki.Checked then LogRemText(RemontkaText);
+        //if not CheckBoxZeroOstatki.Checked then MemoLog.Lines.Add('Товар исключается, нулевое количество. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+      //  isExcludedLine:=true;
+      //  end;
+      if (Amount = -1) then
+        begin
+        LogRemText(RemontkaText);
+        MemoLog.Lines.Add('Товар с кодом "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        MemoLog.Lines.Add('Товар исключается, количество="'+RemontkaText[5]+'" не является числом. Сообщите разработчику.');
+        IsExcludedLine:=true;
+        end;
+      Price:=StrToFloatDef(RemontkaText[11],-1);
+      if (Price = 0) then
+        begin
+        if not CheckBoxZeroPrice.Checked then LogRemText(RemontkaText);
+        if not CheckBoxZeroPrice.Checked then MemoLog.Lines.Add('Товар исключается, нулевая цена. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        IsExcludedLine:=true;
+        end;
+      if (Price = -1) then
+        begin
+        LogRemText(RemontkaText);
+        MemoLog.Lines.Add('Товар с кодом "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        MemoLog.Lines.Add('Товар исключается, цена ="'+RemontkaText[11]+'" отображается неверно. Сообщите разработчику.');
+        isExcludedLine:=true;
+        end;
+      if not IsEmptyLine and not IsExcludedLine then
+        begin
+        PrintText:=PrintPromText(RemontkaText);
+        SavePromTextToSQLite(RemontkaText);
+        if PrintText<>'' then MemoTxt.Lines.Add(PrintText);
+        end;
+      inc(LineNumber);
+      end;
+    finally
+      ExcelIn.ActiveWorkbook.Close;
+      ExcelIn.Application.Quit;
+    end;
+end;
+
+procedure TFormMain.LoadRemontkaToSQLite;
+var
+FileName:string;
+ExcelIn: Variant;
+Price:Extended;
+FString:string;
+PrintText:string;
+FileName1, FileName2:string;
+IsEmptyLine, IsExcludedLine:boolean;
+CellText, CellNum, CellRow:string;
+LineNumber:integer;
+Amount, I: Integer;
+begin
+try
+try
+  ExcelIn := GetActiveOleObject('Excel.Application');
+       except on EOLESysError do
+       ExcelIn := CreateOleObject('Excel.Application');
+      end;
+      ExcelIn.Visible := False;
+      ExcelIn.WindowState := -4140;
+      ExcelIn.DisplayAlerts := False;
+      ExcelIn.WorkBooks.Open(FileOpenDialog1.FileName, 0 , true);
+      ExcelIn.WorkSheets[1].Activate;
+      MemoTxt.Clear;
+      MemoTxt.Lines.Add(WritePromHeaders);
+      LineNumber:=1;
+      PB.Position:=0;
+      PB.Min:=1;
+      PB.Max:=300;
+      PB.Step:=1;
+      PB.StepIt;
+      for I := 1 to 13 do
+      begin
+        CellRow:=caseNumber(i);
+        CellNum:='1';
+        CellText:=Trim(ExcelIn.Range[CellRow+CellNum]);
+        CellText:=TrimSeparator(CellText);
+        if not isRemontkaHeaderCorrect(i, CellText) then
+          begin
+            MemoLog.Lines.Add('Неверный заголовок файла, проведите выгрузку "Остатки на складе.xls" из remonline ещё раз     '
+                                +CellRow+CellNum+'!'+'!'+CellText);
+            ShowMessage('Неверный файл остатоков, он создан нажатием на кнопку "Создать отчёт"'+chr(10)+chr(13)
+                          +'Зайдите на сайт remonline ещё раз и выгрузите файл остатков с помощью "бутерброда"'+chr(10)+chr(13)
+                          +'Выберите вкладку "Склад", бутерброд(три полоски) находится возле Строки "Наличие"');
+            exit;
+          end;
+      end;
+      LineNumber:=2;
+      isEmptyLine:=false;
+      while not IsEmptyLine do
+      begin
+      isExcludedLine:=false;
+      PB.StepIt;
+      for I := 1 to 13 do
+        begin
+        CellRow:=caseNumber(i);
+        CellNum:=IntToStr(LineNumber);
+        CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
+        RemontkaText[i]:=TrimSeparator(CellText);
+        if (i=1) and (length(RemontkaText[i])>0) then RemontkaText[i]:=''''+RemontkaText[i];
+        if LineNumber>50000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
+        end;
+      //
+      if  (length(RemontkaText[1])=0)and(length(RemontkaText[2])=0)
+           and (length(RemontkaText[3])=0)and(length(RemontkaText[4])=0)
+      then
+        begin
+        //LogRemText(RemontkaText);
+        //MemoLog.Lines.Add('Найдена пустая строка');
+        IsEmptyLine:=true;
+        Continue;
+        end;
+      Amount:=StrToIntDef(RemontkaText[5],-1);
+      if (Amount = 0) then
+        begin
+        if not CheckBoxZeroOstatki.Checked then LogRemText(RemontkaText);
+        if not CheckBoxZeroOstatki.Checked then MemoLog.Lines.Add('Товар исключается, нулевое количество. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        isExcludedLine:=true;
+        end;
+      if (Amount = -1) then
+        begin
+        LogRemText(RemontkaText);
+        MemoLog.Lines.Add('Товар с кодом "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        MemoLog.Lines.Add('Товар исключается, количество="'+RemontkaText[5]+'" не является числом. Сообщите разработчику.');
+        IsExcludedLine:=true;
+        end;
+      Price:=StrToFloatDef(RemontkaText[11],-1);
+      if (Price = 0) then
+        begin
+        if not CheckBoxZeroPrice.Checked then LogRemText(RemontkaText);
+        if not CheckBoxZeroPrice.Checked then MemoLog.Lines.Add('Товар исключается, нулевая цена. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        IsExcludedLine:=true;
+        end;
+      if (Price = -1) then
+        begin
+        LogRemText(RemontkaText);
+        MemoLog.Lines.Add('Товар с кодом "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        MemoLog.Lines.Add('Товар исключается, цена ="'+RemontkaText[11]+'" отображается неверно. Сообщите разработчику.');
+        isExcludedLine:=true;
+        end;
+      if not IsEmptyLine and not IsExcludedLine then
+        begin
+        PrintText:=PrintPromText(RemontkaText);
+        SavePromTextToSQLite(RemontkaText);
+        if PrintText<>'' then MemoTxt.Lines.Add(PrintText);
+        end;
+      inc(LineNumber);
+      end;
+    finally
+      ExcelIn.ActiveWorkbook.Close;
+      ExcelIn.Application.Quit;
+    end;
 end;
 
 function TFormMain.LogRemText(RemText: array of string): string;
@@ -778,7 +930,7 @@ for I := 2 to 23 do
     RemNumber:=Mapping[i].RemontkaNumber;
     case RemNumber of
     -999:;
-    -5: Result:=Result+PlusQuotes('u',Mapping[i].Quoted);
+    -5: Result:=Result+PlusQuotes('r',Mapping[i].Quoted);
     -7: Result:=Result+PlusQuotes('UAH',Mapping[i].Quoted);
     -8: Result:=Result+PlusQuotes('шт.',Mapping[i].Quoted);
     -9: Result:=Result+PlusQuotes('1',Mapping[i].Quoted);
@@ -819,12 +971,49 @@ var
 strSQL: String;
 S3DB:TSQLiteDatabase;
 S3Tbl: TSQLIteTable;
+Code:string;
+Flags: TReplaceFlags;
 begin
-  S3DB := TSQLiteDatabase.Create( ExtractFilepath(application.exename) + 'database.sqlite3');
+Flags:= [rfReplaceAll, rfIgnoreCase];
+  try
+  S3DB := TSQLiteDatabase.Create(DBName);
+  S3DB.BeginTransaction;
+  code:=pPromArray[0];
+  //if Pos('''',Code)>0 then Code:=StringReplace(Code,'''','',Flags);
+  strSQL := 'INSERT INTO Remontka_items(Code, Artikul, Barcode, Name, Amount, Category, Warranty, WarrantyPeriod, PurchasePrice, ZeroPrice, InternetPrice, RepairPrice, RetailPrice, RepairPrice) VALUES ("'
+    +pPromArray[0]+'","'
+    +pPromArray[1]+'","'
+    +pPromArray[2]+'","'
+    +pPromArray[3]+'","'
+    +pPromArray[4]+'","'
+    +pPromArray[5]+'","'
+    +pPromArray[6]+'","'
+    +pPromArray[7]+'","'
+    +pPromArray[8]+'","'
+    +pPromArray[9]+'","'
+    +pPromArray[10]+'","'
+    +pPromArray[11]+'","'
+    +pPromArray[12]+'","'
+    +pPromArray[13]
+    +'");';
+  //MemoLog.Lines.Add(strSQL);
+  S3DB.ExecSQL(strSQL);
+  S3DB.Commit;
+  finally
+  S3DB.Free;
+  end;
+end;
+
+procedure TFormMain.EmptySQLite(DName:string);
+var
+strSQL: String;
+S3DB:TSQLiteDatabase;
+S3Tbl: TSQLIteTable;
+begin
+  S3DB := TSQLiteDatabase.Create(DName);
   try
   S3DB.BeginTransaction;
-  strSQL := 'INSERT INTO Remontka_items(Name,Amount, Repair_price) VALUES ("'+pPromArray[3]+'","'+pPromArray[4]+'","'+pPromArray[10]+'");';
-  //MemoLog.Lines.Add(strSQL);
+  strSQL := 'DELETE FROM Remontka_items;';
   S3DB.ExecSQL(strSQL);
   S3DB.Commit;
   finally

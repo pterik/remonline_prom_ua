@@ -66,7 +66,7 @@ object FormMain: TFormMain
   object MemoLog: TMemo
     Left = 8
     Top = 120
-    Width = 657
+    Width = 888
     Height = 345
     Anchors = [akLeft, akRight, akBottom]
     Lines.Strings = (
@@ -124,6 +124,7 @@ object FormMain: TFormMain
     Height = 25
     Caption = 'Test SQLite 3'
     TabOrder = 8
+    Visible = False
     OnClick = btnTestClick
   end
   object Panel1: TPanel
@@ -134,6 +135,7 @@ object FormMain: TFormMain
     Anchors = [akRight, akBottom]
     Caption = 'Panel1'
     TabOrder = 9
+    Visible = False
     object Label4: TLabel
       Left = 39
       Top = 5
@@ -215,6 +217,7 @@ object FormMain: TFormMain
     Height = 25
     Caption = 'Load image'
     TabOrder = 10
+    Visible = False
     OnClick = btnLoadImageClick
   end
   object btnBackup: TButton
@@ -224,6 +227,7 @@ object FormMain: TFormMain
     Height = 25
     Caption = 'Backup'
     TabOrder = 11
+    Visible = False
     OnClick = btnBackupClick
   end
   object btnBack: TButton
@@ -233,6 +237,7 @@ object FormMain: TFormMain
     Height = 25
     Caption = '<<'
     TabOrder = 12
+    Visible = False
     OnClick = btnBackClick
   end
   object btnForward: TButton
@@ -242,6 +247,7 @@ object FormMain: TFormMain
     Height = 25
     Caption = '>>'
     TabOrder = 13
+    Visible = False
     OnClick = btnForwardClick
   end
   object FileOpenDialog1: TFileOpenDialog
@@ -250,10 +256,24 @@ object FormMain: TFormMain
     FileTypes = <
       item
         DisplayName = 'Excel'
-        FileMask = '*.xls;*.xlsx'
+        FileMask = '*.xls'
       end>
     Options = [fdoPathMustExist, fdoFileMustExist, fdoShareAware]
-    Left = 184
-    Top = 120
+    Title = #1042#1099#1073#1077#1088#1080#1090#1077' '#1092#1072#1081#1083' '#1089' '#1086#1089#1090#1072#1090#1082#1072#1084#1080' remonline.ua'
+    Left = 160
+    Top = 128
+  end
+  object FileOpenDialog2: TFileOpenDialog
+    DefaultExtension = 'export*.xlsx'
+    FavoriteLinks = <>
+    FileTypes = <
+      item
+        DisplayName = 'Prom files'
+        FileMask = 'export*.xlsx'
+      end>
+    Options = [fdoPathMustExist, fdoFileMustExist, fdoShareAware]
+    Title = #1059#1082#1072#1078#1080#1090#1077' '#1092#1072#1081#1083' '#1089' '#1087#1086#1079#1080#1094#1080#1103#1084#1080' '#1074' prom.ua'
+    Left = 272
+    Top = 128
   end
 end
