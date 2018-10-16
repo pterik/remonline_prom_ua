@@ -15,6 +15,19 @@ PromHeader : array [1..23] of string = (
       'Наличие','Количество', 'Скидка','Производитель','Страна_производитель','Номер_группы','Адрес_подраздела',
       'Идентификатор_товара','Уникальный_идентификатор','Идентификатор_подраздела','Идентификатор_группы'
 );
+ImportHeader : array [1..39] of string = (
+      'Код_товара','Название_позиции','Ключевые_слова','Описание','Тип_товара',
+      'Цена','Валюта','Единица_измерения','Минимальный_объем_заказа','Оптовая_цена',
+      'Минимальный_заказ_опт','Ссылка_изображения','Наличие', 'Количество','Номер_группы',
+      'Название_группы','Адрес_подраздела','Возможность_поставки','Срок_поставки', 'Способ_упаковки',
+      'Уникальный_идентификатор','Идентификатор_товара','Идентификатор_подраздела', 'Идентификатор_группы','Производитель',
+      'Страна_производитель','Скидка','ID_группы_разновидностей', 'Метки','Продукт_на_сайте',
+      'Название_Характеристики','Измерение_Характеристики','Значение_Характеристики',
+      'Название_Характеристики','Измерение_Характеристики','Значение_Характеристики',
+      'Название_Характеристики','Измерение_Характеристики','Значение_Характеристики'
+);
+
+
 FileSeparator:char=';';
 
 type
@@ -62,22 +75,18 @@ type
     procedure btnBackClick(Sender: TObject);
     procedure btnForwardClick(Sender: TObject);
   private
-    { Private declarations }
     Mapping:array [1..23] of Mapping_rec;
-    RemontkaText: array[1..23] of string;
-    PromText: array[1..23] of string;
     DBName:string;
     sltb: TSQLIteTable;
-    function isRemontkaHeaderCorrect(Where:integer; Value:string):boolean;
-    function isPromHeaderCorrect(Where: integer; Value: string): boolean;
-    function WritePromHeaders:string;
-    function WriteRemontkaHeader: string;
-    function CaseNumber(k:integer):string;
+    function  isRemontkaHeaderCorrect(Where:integer; Value:string):boolean;
+    function  isPromHeaderCorrect(Where: integer; Value: string): boolean;
+    function  WritePromHeaders:string;
+    function  WriteRemontkaHeader: string;
+    function  CaseNumber(k:integer):string;
     procedure FillMapping;
-    function PrintPromText(pPromText:array of string):string;
-    function LogRemText(RemText:array of string):string;
-    function PlusQuotes(Str:string; isQuoted:boolean):string;
-    function TrimSeparator(const Str:string):string;
+    function  PrintPromText(pPromText:array of string):string;
+    function  PlusQuotes(Str:string; isQuoted:boolean):string;
+    function  TrimSeparator(const Str:string):string;
     procedure CopyMemoToXLS(FileName:string; Lines:integer);
     procedure SavePromTextToSQLite(pPromArray:array of string);
     procedure UpdateFields;
@@ -86,7 +95,8 @@ type
     procedure EmptySQLite(DName:string);
     procedure LoadRemontkaToSQLite;
     procedure LoadPromToSQLite;
-
+    function  LogPromText(const PromText: array of string): string;
+    function  LogRemText(const RemontkaText:array of string):string;
   public
     { Public declarations }
   end;
@@ -103,7 +113,8 @@ Close;
 end;
 
 procedure TFormMain.BitBtnXLSClick(Sender: TObject);
-var FileName:string;
+var
+FileName:string;
 ExcelIn: Variant;
 Price:Extended;
 FString:string;
@@ -122,7 +133,7 @@ MemoLog.Lines.Add('Обрабатывается файл '+FileName);
 LoadRemontkaToSQLite;
 if LowerCase(ExtractFileExt(FileName))='.xls' then FileName:=LowerCase(FileName+'x');
 Pb.Position:=PB.Max div 2;
-MemoLog.Lines.Add('остатки обработаны, выберите файл prom.ua для загрузки ');
+MemoLog.Lines.Add('Остатки обработаны, выберите файл prom.ua для загрузки ');
 if not FileOpenDialog2.Execute then exit;
 LoadPromToSQLite;
 CopyMemoToXLS(ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName), LineNumber);
@@ -428,7 +439,9 @@ try
 end;
 
 procedure TFormMain.BitBtnCSVClick(Sender: TObject);
-var FileName:string;
+var
+RemontkaText: array[1..23] of string;
+FileName:string;
 CsvFileName:string;
 Excel: Variant;
 FString:string;
@@ -671,6 +684,7 @@ end;
 
 procedure TFormMain.LoadPromToSQLite;
 var
+PromText: array[1..23] of string;
 FileName, PromFileName:string;
 ExcelIn: Variant;
 Price:Extended;
@@ -702,7 +716,7 @@ try
       PB.Max:=300;
       PB.Step:=1;
       PB.StepIt;
-      for I := 1 to 13 do
+      for I := 1 to 23 do
       begin
         CellRow:=caseNumber(i);
         CellNum:='1';
@@ -725,15 +739,13 @@ try
       begin
       isExcludedLine:=false;
       PB.StepIt;
-      for I := 1 to 13 do
+      for I := 1 to 23 do
         begin
-        Обрабатываем Prom и сохраняем его поля в SQLite
-        Закончить ниже
         CellRow:=caseNumber(i);
         CellNum:=IntToStr(LineNumber);
         CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
         PromText[i]:=TrimSeparator(CellText);
-        if (i=1) and (length(RemontkaText[i])>0) then RemontkaText[i]:=''''+RemontkaText[i];
+        if (i=1) and (length(PromText[i])>0) then PromText[i]:=''''+PromText[i];
         if LineNumber>50000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
         end;
       //
@@ -755,29 +767,29 @@ try
       //  end;
       if (Amount = -1) then
         begin
-        LogRemText(RemontkaText);
-        MemoLog.Lines.Add('Товар с кодом "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
-        MemoLog.Lines.Add('Товар исключается, количество="'+RemontkaText[5]+'" не является числом. Сообщите разработчику.');
+        LogRemText(PromText);
+        MemoLog.Lines.Add('Товар с кодом "'+PromText[1]+'", Название "'+PromText[4]+'"');
+        MemoLog.Lines.Add('Товар исключается, количество="'+PromText[5]+'" не является числом. Сообщите разработчику.');
         IsExcludedLine:=true;
         end;
-      Price:=StrToFloatDef(RemontkaText[11],-1);
+      Price:=StrToFloatDef(PromText[11],-1);
       if (Price = 0) then
         begin
-        if not CheckBoxZeroPrice.Checked then LogRemText(RemontkaText);
-        if not CheckBoxZeroPrice.Checked then MemoLog.Lines.Add('Товар исключается, нулевая цена. Код "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
+        if not CheckBoxZeroPrice.Checked then LogPromText(PromText);
+        if not CheckBoxZeroPrice.Checked then MemoLog.Lines.Add('Товар исключается, нулевая цена. Код "'+PromText[1]+'", Название "'+PromText[4]+'"');
         IsExcludedLine:=true;
         end;
       if (Price = -1) then
         begin
-        LogRemText(RemontkaText);
-        MemoLog.Lines.Add('Товар с кодом "'+RemontkaText[1]+'", Название "'+RemontkaText[4]+'"');
-        MemoLog.Lines.Add('Товар исключается, цена ="'+RemontkaText[11]+'" отображается неверно. Сообщите разработчику.');
+        LogPromText(PromText);
+        MemoLog.Lines.Add('Товар с кодом "'+PromText[1]+'", Название "'+PromText[4]+'"');
+        MemoLog.Lines.Add('Товар исключается, цена ="'+PromText[11]+'" отображается неверно. Сообщите разработчику.');
         isExcludedLine:=true;
         end;
       if not IsEmptyLine and not IsExcludedLine then
         begin
-        PrintText:=PrintPromText(RemontkaText);
-        SavePromTextToSQLite(RemontkaText);
+        PrintText:=PrintPromText(PromText);
+        SavePromTextToSQLite(PromText);
         if PrintText<>'' then MemoTxt.Lines.Add(PrintText);
         end;
       inc(LineNumber);
@@ -790,6 +802,7 @@ end;
 
 procedure TFormMain.LoadRemontkaToSQLite;
 var
+RemontkaText: array[1..23] of string;
 FileName:string;
 ExcelIn: Variant;
 Price:Extended;
@@ -849,9 +862,9 @@ try
         CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
         RemontkaText[i]:=TrimSeparator(CellText);
         if (i=1) and (length(RemontkaText[i])>0) then RemontkaText[i]:=''''+RemontkaText[i];
-        if LineNumber>50000 then IsEmptyLine:=true;  //Выходим если 50(00) строк чтобы не было зацикливания
+        if LineNumber>50000 then IsEmptyLine:=true;
+        //Выходим если 50(00) строк чтобы не было зацикливания
         end;
-      //
       if  (length(RemontkaText[1])=0)and(length(RemontkaText[2])=0)
            and (length(RemontkaText[3])=0)and(length(RemontkaText[4])=0)
       then
@@ -903,11 +916,19 @@ try
     end;
 end;
 
-function TFormMain.LogRemText(RemText: array of string): string;
+function TFormMain.LogRemText(const RemontkaText: array of string): string;
 var i:integer;
 begin
-Result:=RemText[1];
-for I := 2 to 13 do Result:=Result+'|'+Remtext[i];
+Result:=RemontkaText[1];
+for I := 2 to 13 do Result:=Result+'|'+RemontkaText[i];
+MemoLog.Lines.Add(Result);
+end;
+
+function TFormMain.LogPromText(const PromText: array of string): string;
+var i:integer;
+begin
+Result:=PromText[1];
+for I := 2 to 23 do Result:=Result+'|'+PromText[i];
 MemoLog.Lines.Add(Result);
 end;
 
