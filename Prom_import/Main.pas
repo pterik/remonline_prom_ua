@@ -50,35 +50,16 @@ type
     PB: TProgressBar;
     CheckBoxZeroPrice: TCheckBox;
     CheckBoxZeroOstatki: TCheckBox;
-    btnTest: TButton;
-    Panel1: TPanel;
-    Label4: TLabel;
-    ebID: TEdit;
-    Label2: TLabel;
-    ebName: TEdit;
-    Label3: TLabel;
-    ebNumber: TEdit;
-    Label1: TLabel;
-    memNotes: TMemo;
-    Image1: TImage;
-    btnLoadImage: TButton;
-    btnBackup: TButton;
-    btnBack: TButton;
-    btnForward: TButton;
     FileOpenDialog2: TFileOpenDialog;
     procedure BitBtnCloseClick(Sender: TObject);
     procedure BitBtnXLSClick(Sender: TObject);
     procedure BitBtnCSVClick(Sender: TObject);
-    procedure btnTestClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure btnLoadImageClick(Sender: TObject);
-    procedure btnBackupClick(Sender: TObject);
-    procedure btnBackClick(Sender: TObject);
-    procedure btnForwardClick(Sender: TObject);
   private
     Mapping:array [1..23] of Mapping_rec;
     DBName:string;
     //sltb: TSQLIteTable;
+    Flags: TReplaceFlags;
     function  isRemontkaHeaderCorrect(Where:integer; Value:string):boolean;
     function  isPromHeaderCorrect(Where: integer; Value: string): boolean;
     function  isPromExpandHeaderCorrect(Where: integer; Value: string): boolean;
@@ -88,11 +69,9 @@ type
     function  PrintPromText(pPromText:array of string):string;
     function  PlusQuotes(Str:string; isQuoted:boolean):string;
     function  TrimSeparator(const Str:string):string;
-    function  ReplaceQuotes(const Str:string):string;
+    function  QuotesForSQL(const Str:string):string;
     procedure CopyMemoToXLS(FileName:string; Lines:integer);
     procedure CopySQLiteToXLS(FileName:string);
-    procedure UpdateFields;
-    procedure UpdateImage;
     procedure FormDblClick(Sender: TObject);
     procedure EmptySQLite;
     procedure SavePromToSQLite(pPromArray:array of string);
@@ -144,193 +123,6 @@ LoadPromToSQLite;
 CopySQLiteToXLS(ExtractFilePath(FileName)+'DB_prom_'+ExtractFileName(FileName));
 MemoLog.Lines.Add('Остатки обработаны, файл создан '+ExtractFilePath(FileName)+'DB_prom_'+ExtractFileName(FileName));
 Pb.Position:=PB.Max;
-end;
-
-procedure TFormMain.btnBackClick(Sender: TObject);
-begin
-//  if sltb = nil then begin
-//  MessageDLg('Table not initialised. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
-//  exit;
-//  end;
-
-//  if not sltb.BOF then
-//  begin
-//  sltb.Previous;
-//  updateFields;
-//  end;
-end;
-
-procedure TFormMain.btnBackupClick(Sender: TObject);
-//var
-//slDBpath: string;
-//sldb: TSQLiteDatabase;
-//sldbBak: TSQLiteDatabase;
-begin
-//slDBPath := ExtractFilepath(application.exename);
-//if not FileExists(slDBPath + 'test.db') then
-//  begin
-//  MessageDLg('Test.db does not exist. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
-//  exit;
-//  end;
-//sldb := TSQLiteDatabase.Create(slDBPath + 'test.db');
-//  try
-//  sldbBak := TSQLiteDatabase.Create(slDBPath + 'testbak.db');
-//    try
-//    sldb.Backup(sldbBak);
-//    finally
-//    sldbBak.Free;
-//    end;
-//  finally
-//  sldb.Free;
-//  end;
-end;
-
-procedure TFormMain.btnForwardClick(Sender: TObject);
-begin
-//  if sltb = nil then begin
-//  MessageDLg('Table not initialised. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
-//  exit;
-//  end;
-
-//  if not slTb.IsLastRow then
-//  begin
-//  sltb.Next;
-//  updateFields;
-//  end;
-end;
-
-procedure TFormMain.btnLoadImageClick(Sender: TObject);
-//var
-//slDBpath: string;
-//sldb: TSQLiteDatabase;
-//iID: integer;
-//fs: TFileStream;
-begin
-//slDBPath := ExtractFilepath(application.exename) + 'test.db';
-//if not FileExists(slDBPath) then
-//  begin
-//  MessageDLg('Test.db does not exist. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
-//  exit;
-//  end;
-//if sltb = nil then exit;
-//sldb := TSQLiteDatabase.Create(slDBPath);
-//try
-//  if sltb.EOF then
-//    begin
-//    MessageDLg('Table is at end of file.',mtInformation,[mbOK],0);
-//    exit;
-//    end;
-//  iID := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
-//  //load an image
-//  fs := TFileStream.Create(ExtractFileDir(application.ExeName) + '\sunset.jpg',fmOpenRead);
-//  try
-//    //insert the image into the db
-//    sldb.UpdateBlob('UPDATE testtable set picture = ? WHERE ID = ' + inttostr(iID),fs);
-//  finally
-//    fs.Free;
-//  end;
-//finally
-//sldb.Free;
-//end;
-//updateImage;
-end;
-
-procedure TFormMain.btnTestClick(Sender: TObject);
-//var
-//sldb: TSQLiteDatabase;
-//sSQL: String;
-//ts: TStringStream;
-begin
-//sldb := TSQLiteDatabase.Create( ExtractFilepath(application.exename) + 'test.db');
-//  try
-//  if sldb.TableExists('testTable') then
-//  begin
-//  sSQL := 'DROP TABLE testtable';
-//  sldb.execsql(sSQL);
-//  end;
-//  sSQL := 'CREATE TABLE testtable ([ID] INTEGER PRIMARY KEY,[OtherID] INTEGER NULL,';
-//  sSQL := sSQL + '[Name] VARCHAR (255),[Number] FLOAT, [notes] BLOB, [picture] BLOB COLLATE NOCASE);';
-//  sldb.execsql(sSQL);
-//  sldb.execsql('CREATE INDEX TestTableName ON [testtable]([Name]);');
-//  //begin a transaction
-//  sldb.BeginTransaction;
-//  sSQL := 'INSERT INTO testtable(Name,OtherID,Number) VALUES ("Some Name",4,587.6594);';
-//  //do the insert
-//  sldb.ExecSQL(sSQL);
-//  sSQL := 'INSERT INTO testtable(Name,OtherID,Number,Notes) VALUES ("Another Name",12,4758.3265,"More notes");';
-//  //do the insert
-//  sldb.ExecSQL(sSQL);
-//  //end the transaction
-//  sldb.Commit;
-//  //add the notes using a parameter
-//  ts := TStringStream.Create('Here are some notes with a unicode smiley: ' + char($263a),TEncoding.UTF8);
-//    try
-//    //insert the text into the db
-//    sldb.UpdateBlob('UPDATE testtable set notes = ? WHERE OtherID = 4',ts);
-//    finally
-//      ts.Free;
-//    end;
-//  if sltb<> nil then
-//  sltb.Free;
-//  //query the data
-//  sltb := slDb.GetTable('SELECT * FROM testtable');
-//  if sltb.Count > 0 then
-//  begin
-//    //display first row
-//    updateFields;
-//  end;
-//  finally
-//  sldb.Free;
-//  end;
-end;
-
-procedure TFormMain.UpdateFields;
-//var
-//Notes: string;
-begin
-//ebName.Text := sltb.FieldAsString(sltb.FieldIndex['Name']);
-//ebID.Text := inttostr(sltb.FieldAsInteger(sltb.FieldIndex['ID']));
-//ebNumber.Text := floattostr( sltb.FieldAsDouble(sltb.FieldIndex['Number']));
-//Notes :=  sltb.FieldAsBlobText(sltb.FieldIndex['Notes']);
-//memNotes.Text := notes;
-//updateImage;
-end;
-
-procedure TFormMain.UpdateImage;
-//var
-//ms: TMemoryStream;
-//pic: TJPegImage;
-//sldb: TSqliteDatabase;
-//sltbU: TSqliteUniTable;
-//slDBPath: string;
-//iID: integer;
-begin
-//  if sltb = nil then exit;
-//  self.Image1.Picture.Graphic := nil;
-//  slDBPath := ExtractFilepath(application.exename) + 'test.db';
-//  if not FileExists(slDBPath) then exit;
-//  sldb := TSQLiteDatabase.Create(slDBPath);
-//  try
-//    iID := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
-//    sltbU := sldb.GetUniTable('SELECT picture FROM testtable where ID = ' + inttostr(iID));
-//    try
-//      ms := sltbU.FieldAsBlob(sltbU.FieldIndex['picture']);
-//      if (ms = nil) then exit;
-//      try
-//        ms.Position := 0;
-//        pic := TJPEGImage.Create;
-//        pic.LoadFromStream(ms);
-//        self.Image1.Picture.Graphic := pic;
-//        pic.Free;
-//      finally
-//        ms.Free;
-//      end;
-//    finally
-//      sltbU.Free;
-//    end;
-//  finally
-//  sldb.Free;
-//  end;
 end;
 
 function TFormMain.CaseNumber(k: integer): string;
@@ -496,25 +288,25 @@ try
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),3].Value:=STBL.FieldAsString(STBL.FieldIndex['Keywords']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),4].Value:=STBL.FieldAsString(STBL.FieldIndex['Description']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),5].Value:=STBL.FieldAsString(STBL.FieldIndex['Product_type']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),6].Value:=STBL.FieldAsString(STBL.FieldIndex['price']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),6].Value:=STBL.FieldAsDouble(STBL.FieldIndex['price']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),7].Value:=STBL.FieldAsString(STBL.FieldIndex['Currency']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),8].Value:=STBL.FieldAsString(STBL.FieldIndex['Unit_of_measurement']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),9].Value:=STBL.FieldAsString(STBL.FieldIndex['Minimum_size_Order']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),10].Value:=STBL.FieldAsString(STBL.FieldIndex['Wholesale_price']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),11].Value:=STBL.FieldAsString(STBL.FieldIndex['Min_Order_Opt']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),9].Value:=STBL.FieldAsDouble(STBL.FieldIndex['Minimum_size_Order']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),10].Value:=STBL.FieldAsDouble(STBL.FieldIndex['Wholesale_price']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),11].Value:=STBL.FieldAsDouble(STBL.FieldIndex['Min_Order_Opt']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),12].Value:=STBL.FieldAsString(STBL.FieldIndex['Image_Link']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),13].Value:=STBL.FieldAsString(STBL.FieldIndex['Availability']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),14].Value:=STBL.FieldAsString(STBL.FieldIndex['Amount']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),14].Value:=STBL.FieldAsDouble(STBL.FieldIndex['Amount']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),15].Value:=STBL.FieldAsString(STBL.FieldIndex['Group_number']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),16].Value:=STBL.FieldAsString(STBL.FieldIndex['Group_name']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),17].Value:=STBL.FieldAsString(STBL.FieldIndex['Division_Address']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),18].Value:=STBL.FieldAsString(STBL.FieldIndex['Possibility_of_delivery']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),19].Value:=STBL.FieldAsString(STBL.FieldIndex['Delivery_period']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),20].Value:=STBL.FieldAsString(STBL.FieldIndex['Packing_Mode']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),21].Value:=STBL.FieldAsString(STBL.FieldIndex['Unique_identificator']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),22].Value:=STBL.FieldAsString(STBL.FieldIndex['Product_id']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),23].Value:=STBL.FieldAsString(STBL.FieldIndex['Subdivision_id']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),24].Value:=STBL.FieldAsString(STBL.FieldIndex['Group_id']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),21].Value:=STBL.FieldAsInteger(STBL.FieldIndex['Unique_identificator']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),22].Value:=STBL.FieldAsInteger(STBL.FieldIndex['Product_id']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),23].Value:=STBL.FieldAsInteger(STBL.FieldIndex['Subdivision_id']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),24].Value:=STBL.FieldAsInteger(STBL.FieldIndex['Group_id']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),25].Value:=STBL.FieldAsString(STBL.FieldIndex['Manufacturer']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),26].Value:=STBL.FieldAsString(STBL.FieldIndex['Producing_country']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),27].Value:=STBL.FieldAsString(STBL.FieldIndex['Discount']);
@@ -533,6 +325,7 @@ try
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),40].Value:=STBL.FieldAsString(STBL.FieldIndex['Name4_Characteristics']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),41].Value:=STBL.FieldAsString(STBL.FieldIndex['Measurement4_Characteristics']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),42].Value:=STBL.FieldAsString(STBL.FieldIndex['Value4_Characteristics']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Rows[IntToStr(LineNumber)].RowHeight:=16;
       STBL.Next;
       PB.StepIt;
     end;
@@ -862,7 +655,7 @@ try
         CellRow:=caseNumber(i);
         CellNum:=IntToStr(LineNumber);
         CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
-        PromExpandText[i]:=ReplaceQuotes(CellText);
+        PromExpandText[i]:=CellText;
         if LineNumber>50000 then IsEmptyLine:=true;
         end;
       if  (length(PromExpandText[1])=0)and(length(PromExpandText[2])=0)
@@ -1064,19 +857,12 @@ for I := 2 to 23 do
   end;
  end;
 
-function TFormMain.ReplaceQuotes(const Str: string): string;
-var where:integer;
-Local:string;
+function TFormMain.QuotesForSQL(const Str: string): string;
+var
+Flags: TReplaceFlags;
 begin
-Local:=Str;
-if Pos('"', Str)=0 then Result:=Local
-else
-  while Pos('"', Local)>0 do
-  begin
-  where:=Pos('"', Local);
-  Local:=Copy(Local, 1, where-1)+''''+ Copy(Local, where+1, length(Local));
-  end;
-  Result:=Local;
+Flags:= [rfReplaceAll, rfIgnoreCase];
+Result:=StringReplace(Str,'"','""',Flags);
 end;
 
 procedure TFormMain.SavePromToSQLite(pPromArray:array of string);
@@ -1085,14 +871,11 @@ strSQL: String;
 S3DB:TSQLiteDatabase;
 S3Tbl: TSQLIteTable;
 Code:string;
-Flags: TReplaceFlags;
 begin
-Flags:= [rfReplaceAll, rfIgnoreCase];
   try
   S3DB := TSQLiteDatabase.Create(DBName);
   S3DB.BeginTransaction;
   code:=pPromArray[0];
-  //if Pos('''',Code)>0 then Code:=StringReplace(Code,'''','',Flags);
   strSQL := 'INSERT INTO Prom_items(Product_code, Position_Name, Keywords, Description, Product_type, '
   +' Price, Currency, Unit_of_measurement, Minimum_size_Order, Wholesale_price, '
   +' Min_Order_Opt, Image_Link, Availability, Amount, Group_number, '
@@ -1103,49 +886,49 @@ Flags:= [rfReplaceAll, rfIgnoreCase];
   +' Name2_Characteristics, Measurement2_Characteristics, Value2_Characteristics, '
   +' Name3_Characteristics, Measurement3_Characteristics, Value3_Characteristics, '
   +' Name4_Characteristics, Measurement4_Characteristics, Value4_Characteristics ) VALUES ("'
-    +pPromArray[0]+'","'
-    +pPromArray[1]+'","'
-    +pPromArray[2]+'","'
-    +pPromArray[3]+'","'
-    +pPromArray[4]+'","'
-    +pPromArray[5]+'","'
-    +pPromArray[6]+'","'
-    +pPromArray[7]+'","'
-    +pPromArray[8]+'","'
-    +pPromArray[9]+'","'
-    +pPromArray[10]+'","'
-    +pPromArray[11]+'","'
-    +pPromArray[12]+'","'
-    +pPromArray[13]+'","'
-    +pPromArray[14]+'","'
-    +pPromArray[15]+'","'
-    +pPromArray[16]+'","'
-    +pPromArray[17]+'","'
-    +pPromArray[18]+'","'
-    +pPromArray[19]+'","'
-    +pPromArray[20]+'","'
-    +pPromArray[21]+'","'
-    +pPromArray[22]+'","'
-    +pPromArray[23]+'","'
-    +pPromArray[24]+'","'
-    +pPromArray[25]+'","'
-    +pPromArray[26]+'","'
-    +pPromArray[27]+'","'
-    +pPromArray[28]+'","'
-    +pPromArray[29]+'","'
-    +pPromArray[30]+'","'
-    +pPromArray[31]+'","'
-    +pPromArray[32]+'","'
-    +pPromArray[33]+'","'
-    +pPromArray[34]+'","'
-    +pPromArray[35]+'","'
-    +pPromArray[36]+'","'
-    +pPromArray[37]+'","'
-    +pPromArray[38]+'","'
-    +pPromArray[39]+'","'
-    +pPromArray[40]+'","'
-    +pPromArray[41]
-    +'");';
+    +QuotesForSQL(pPromArray[0])+'" , "'
+    +QuotesForSQL(pPromArray[1])+'" , "'
+    +QuotesForSQL(pPromArray[2])+'" , "'
+    +QuotesForSQL(pPromArray[3])+'" , "'
+    +QuotesForSQL(pPromArray[4])+'" , "'
+    +QuotesForSQL(pPromArray[5])+'" , "'
+    +QuotesForSQL(pPromArray[6])+'" , "'
+    +QuotesForSQL(pPromArray[7])+'" , "'
+    +QuotesForSQL(pPromArray[8])+'" , "'
+    +QuotesForSQL(pPromArray[9])+'" , "'
+    +QuotesForSQL(pPromArray[10])+'" , "'
+    +QuotesForSQL(pPromArray[11])+'" , "'
+    +QuotesForSQL(pPromArray[12])+'" , "'
+    +QuotesForSQL(pPromArray[13])+'" , "'
+    +QuotesForSQL(pPromArray[14])+'" , "'
+    +QuotesForSQL(pPromArray[15])+'" , "'
+    +QuotesForSQL(pPromArray[16])+'" , "'
+    +QuotesForSQL(pPromArray[17])+'" , "'
+    +QuotesForSQL(pPromArray[18])+'" , "'
+    +QuotesForSQL(pPromArray[19])+'" , "'
+    +QuotesForSQL(pPromArray[20])+'" , "'
+    +QuotesForSQL(pPromArray[21])+'" , "'
+    +QuotesForSQL(pPromArray[22])+'" , "'
+    +QuotesForSQL(pPromArray[23])+'" , "'
+    +QuotesForSQL(pPromArray[24])+'" , "'
+    +QuotesForSQL(pPromArray[25])+'" , "'
+    +QuotesForSQL(pPromArray[26])+'" , "'
+    +QuotesForSQL(pPromArray[27])+'" , "'
+    +QuotesForSQL(pPromArray[28])+'" , "'
+    +QuotesForSQL(pPromArray[29])+'" , "'
+    +QuotesForSQL(pPromArray[30])+'" , "'
+    +QuotesForSQL(pPromArray[31])+'" , "'
+    +QuotesForSQL(pPromArray[32])+'" , "'
+    +QuotesForSQL(pPromArray[33])+'" , "'
+    +QuotesForSQL(pPromArray[34])+'" , "'
+    +QuotesForSQL(pPromArray[35])+'" , "'
+    +QuotesForSQL(pPromArray[36])+'" , "'
+    +QuotesForSQL(pPromArray[37])+'" , "'
+    +QuotesForSQL(pPromArray[38])+'" , "'
+    +QuotesForSQL(pPromArray[39])+'" , "'
+    +QuotesForSQL(pPromArray[40])+'" , "'
+    +QuotesForSQL(pPromArray[41])
+    +'" );';
   //MemoLog.Lines.Add(strSQL);
   S3DB.ExecSQL(strSQL);
   S3DB.Commit;
@@ -1169,21 +952,21 @@ Flags:= [rfReplaceAll, rfIgnoreCase];
   code:=pRemArray[0];
   //if Pos('''',Code)>0 then Code:=StringReplace(Code,'''','',Flags);
   strSQL := 'INSERT INTO Remontka_items(Code, Artikul, Barcode, Name, Amount, Category, Warranty, WarrantyPeriod, PurchasePrice, ZeroPrice, InternetPrice, RepairPrice, RetailPrice, RepairPrice) VALUES ("'
-    +pRemArray[0]+'","'
-    +pRemArray[1]+'","'
-    +pRemArray[2]+'","'
-    +pRemArray[3]+'","'
-    +pRemArray[4]+'","'
-    +pRemArray[5]+'","'
-    +pRemArray[6]+'","'
-    +pRemArray[7]+'","'
-    +pRemArray[8]+'","'
-    +pRemArray[9]+'","'
-    +pRemArray[10]+'","'
-    +pRemArray[11]+'","'
-    +pRemArray[12]+'","'
-    +pRemArray[13]
-    +'");';
+    +QuotesForSQL(pRemArray[0])+'" , "'
+    +QuotesForSQL(pRemArray[1])+'" , "'
+    +QuotesForSQL(pRemArray[2])+'" , "'
+    +QuotesForSQL(pRemArray[3])+'" , "'
+    +QuotesForSQL(pRemArray[4])+'" , "'
+    +QuotesForSQL(pRemArray[5])+'" , "'
+    +QuotesForSQL(pRemArray[6])+'" , "'
+    +QuotesForSQL(pRemArray[7])+'" , "'
+    +QuotesForSQL(pRemArray[8])+'" , "'
+    +QuotesForSQL(pRemArray[9])+'" , "'
+    +QuotesForSQL(pRemArray[10])+'" , "'
+    +QuotesForSQL(pRemArray[11])+'" , "'
+    +QuotesForSQL(pRemArray[12])+'" , "'
+    +QuotesForSQL(pRemArray[13])
+    +'" );';
   //MemoLog.Lines.Add(strSQL);
   S3DB.ExecSQL(strSQL);
   S3DB.Commit;
