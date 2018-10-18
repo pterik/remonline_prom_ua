@@ -78,11 +78,10 @@ type
   private
     Mapping:array [1..23] of Mapping_rec;
     DBName:string;
-    sltb: TSQLIteTable;
+    //sltb: TSQLIteTable;
     function  isRemontkaHeaderCorrect(Where:integer; Value:string):boolean;
     function  isPromHeaderCorrect(Where: integer; Value: string): boolean;
     function  isPromExpandHeaderCorrect(Where: integer; Value: string): boolean;
-    function  WritePromHeaders:string;
     function  WriteRemontkaHeader: string;
     function  CaseNumber(k:integer):string;
     procedure FillMapping;
@@ -91,16 +90,17 @@ type
     function  TrimSeparator(const Str:string):string;
     function  ReplaceQuotes(const Str:string):string;
     procedure CopyMemoToXLS(FileName:string; Lines:integer);
-    procedure CopySQLiteToXLS(FileName:string; Lines:integer);
+    procedure CopySQLiteToXLS(FileName:string);
     procedure UpdateFields;
     procedure UpdateImage;
     procedure FormDblClick(Sender: TObject);
-    procedure EmptySQLite(DName:string);
+    procedure EmptySQLite;
     procedure SavePromToSQLite(pPromArray:array of string);
     procedure SaveRemontkaTextToSQLite(pRemArray:array of string);
     procedure LoadRemontkaToSQLite;
     procedure LoadPromToSQLite;
     function  LogText(const PText: array of string): string;
+    function WritePromExpandHeaders: string;
   public
     { Public declarations }
   end;
@@ -131,7 +131,7 @@ Amount, I: Integer;
 begin
 MemoLog.Clear;
 if not FileOpenDialog1.Execute then exit;
-EmptySQLite(DBName);
+EmptySQLite;
 FileName:=FileOpenDialog1.FileName;
 MemoLog.Lines.Add('Обрабатывается файл '+FileName);
 LoadRemontkaToSQLite;
@@ -141,197 +141,196 @@ MemoLog.Lines.Add('Остатки обработаны, выберите файл prom.ua для загрузки ');
 if not FileOpenDialog2.Execute then exit;
 LoadPromToSQLite;
 //CopyMemoToXLS(ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName), LineNumber);
-CopySQLiteToXLS(ExtractFilePath(FileName)+'DB_prom_'+ExtractFileName(FileName), LineNumber);
-MemoLog.Lines.Add('Остатки обработаны, файл создан '+ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName));
+CopySQLiteToXLS(ExtractFilePath(FileName)+'DB_prom_'+ExtractFileName(FileName));
+MemoLog.Lines.Add('Остатки обработаны, файл создан '+ExtractFilePath(FileName)+'DB_prom_'+ExtractFileName(FileName));
 Pb.Position:=PB.Max;
 end;
 
 procedure TFormMain.btnBackClick(Sender: TObject);
 begin
-  if sltb = nil then begin
-  MessageDLg('Table not initialised. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
-  exit;
-  end;
+//  if sltb = nil then begin
+//  MessageDLg('Table not initialised. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
+//  exit;
+//  end;
 
-  if not sltb.BOF then
-  begin
-  sltb.Previous;
-  updateFields;
-  end;
+//  if not sltb.BOF then
+//  begin
+//  sltb.Previous;
+//  updateFields;
+//  end;
 end;
 
 procedure TFormMain.btnBackupClick(Sender: TObject);
-var
-slDBpath: string;
-sldb: TSQLiteDatabase;
-sldbBak: TSQLiteDatabase;
-
+//var
+//slDBpath: string;
+//sldb: TSQLiteDatabase;
+//sldbBak: TSQLiteDatabase;
 begin
-slDBPath := ExtractFilepath(application.exename);
-if not FileExists(slDBPath + 'test.db') then
-  begin
-  MessageDLg('Test.db does not exist. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
-  exit;
-  end;
-sldb := TSQLiteDatabase.Create(slDBPath + 'test.db');
-  try
-  sldbBak := TSQLiteDatabase.Create(slDBPath + 'testbak.db');
-    try
-    sldb.Backup(sldbBak);
-    finally
-    sldbBak.Free;
-    end;
-  finally
-  sldb.Free;
-  end;
+//slDBPath := ExtractFilepath(application.exename);
+//if not FileExists(slDBPath + 'test.db') then
+//  begin
+//  MessageDLg('Test.db does not exist. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
+//  exit;
+//  end;
+//sldb := TSQLiteDatabase.Create(slDBPath + 'test.db');
+//  try
+//  sldbBak := TSQLiteDatabase.Create(slDBPath + 'testbak.db');
+//    try
+//    sldb.Backup(sldbBak);
+//    finally
+//    sldbBak.Free;
+//    end;
+//  finally
+//  sldb.Free;
+//  end;
 end;
 
 procedure TFormMain.btnForwardClick(Sender: TObject);
 begin
-  if sltb = nil then begin
-  MessageDLg('Table not initialised. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
-  exit;
-  end;
+//  if sltb = nil then begin
+//  MessageDLg('Table not initialised. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
+//  exit;
+//  end;
 
-  if not slTb.IsLastRow then
-  begin
-  sltb.Next;
-  updateFields;
-  end;
+//  if not slTb.IsLastRow then
+//  begin
+//  sltb.Next;
+//  updateFields;
+//  end;
 end;
 
 procedure TFormMain.btnLoadImageClick(Sender: TObject);
-var
-slDBpath: string;
-sldb: TSQLiteDatabase;
-iID: integer;
-fs: TFileStream;
+//var
+//slDBpath: string;
+//sldb: TSQLiteDatabase;
+//iID: integer;
+//fs: TFileStream;
 begin
-slDBPath := ExtractFilepath(application.exename) + 'test.db';
-if not FileExists(slDBPath) then
-  begin
-  MessageDLg('Test.db does not exist. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
-  exit;
-  end;
-if sltb = nil then exit;
-sldb := TSQLiteDatabase.Create(slDBPath);
-try
-  if sltb.EOF then
-    begin
-    MessageDLg('Table is at end of file.',mtInformation,[mbOK],0);
-    exit;
-    end;
-  iID := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
-  //load an image
-  fs := TFileStream.Create(ExtractFileDir(application.ExeName) + '\sunset.jpg',fmOpenRead);
-  try
-    //insert the image into the db
-    sldb.UpdateBlob('UPDATE testtable set picture = ? WHERE ID = ' + inttostr(iID),fs);
-  finally
-    fs.Free;
-  end;
-finally
-sldb.Free;
-end;
-updateImage;
+//slDBPath := ExtractFilepath(application.exename) + 'test.db';
+//if not FileExists(slDBPath) then
+//  begin
+//  MessageDLg('Test.db does not exist. Click Test Sqlite 3 to create it.',mtInformation,[mbOK],0);
+//  exit;
+//  end;
+//if sltb = nil then exit;
+//sldb := TSQLiteDatabase.Create(slDBPath);
+//try
+//  if sltb.EOF then
+//    begin
+//    MessageDLg('Table is at end of file.',mtInformation,[mbOK],0);
+//    exit;
+//    end;
+//  iID := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
+//  //load an image
+//  fs := TFileStream.Create(ExtractFileDir(application.ExeName) + '\sunset.jpg',fmOpenRead);
+//  try
+//    //insert the image into the db
+//    sldb.UpdateBlob('UPDATE testtable set picture = ? WHERE ID = ' + inttostr(iID),fs);
+//  finally
+//    fs.Free;
+//  end;
+//finally
+//sldb.Free;
+//end;
+//updateImage;
 end;
 
 procedure TFormMain.btnTestClick(Sender: TObject);
-var
-sldb: TSQLiteDatabase;
-sSQL: String;
-ts: TStringStream;
+//var
+//sldb: TSQLiteDatabase;
+//sSQL: String;
+//ts: TStringStream;
 begin
-sldb := TSQLiteDatabase.Create( ExtractFilepath(application.exename) + 'test.db');
-  try
-  if sldb.TableExists('testTable') then
-  begin
-  sSQL := 'DROP TABLE testtable';
-  sldb.execsql(sSQL);
-  end;
-  sSQL := 'CREATE TABLE testtable ([ID] INTEGER PRIMARY KEY,[OtherID] INTEGER NULL,';
-  sSQL := sSQL + '[Name] VARCHAR (255),[Number] FLOAT, [notes] BLOB, [picture] BLOB COLLATE NOCASE);';
-  sldb.execsql(sSQL);
-  sldb.execsql('CREATE INDEX TestTableName ON [testtable]([Name]);');
-  //begin a transaction
-  sldb.BeginTransaction;
-  sSQL := 'INSERT INTO testtable(Name,OtherID,Number) VALUES ("Some Name",4,587.6594);';
-  //do the insert
-  sldb.ExecSQL(sSQL);
-  sSQL := 'INSERT INTO testtable(Name,OtherID,Number,Notes) VALUES ("Another Name",12,4758.3265,"More notes");';
-  //do the insert
-  sldb.ExecSQL(sSQL);
-  //end the transaction
-  sldb.Commit;
-  //add the notes using a parameter
-  ts := TStringStream.Create('Here are some notes with a unicode smiley: ' + char($263a),TEncoding.UTF8);
-    try
-    //insert the text into the db
-    sldb.UpdateBlob('UPDATE testtable set notes = ? WHERE OtherID = 4',ts);
-    finally
-      ts.Free;
-    end;
-  if sltb<> nil then
-  sltb.Free;
-  //query the data
-  sltb := slDb.GetTable('SELECT * FROM testtable');
-  if sltb.Count > 0 then
-  begin
-    //display first row
-    updateFields;
-  end;
-  finally
-  sldb.Free;
-  end;
+//sldb := TSQLiteDatabase.Create( ExtractFilepath(application.exename) + 'test.db');
+//  try
+//  if sldb.TableExists('testTable') then
+//  begin
+//  sSQL := 'DROP TABLE testtable';
+//  sldb.execsql(sSQL);
+//  end;
+//  sSQL := 'CREATE TABLE testtable ([ID] INTEGER PRIMARY KEY,[OtherID] INTEGER NULL,';
+//  sSQL := sSQL + '[Name] VARCHAR (255),[Number] FLOAT, [notes] BLOB, [picture] BLOB COLLATE NOCASE);';
+//  sldb.execsql(sSQL);
+//  sldb.execsql('CREATE INDEX TestTableName ON [testtable]([Name]);');
+//  //begin a transaction
+//  sldb.BeginTransaction;
+//  sSQL := 'INSERT INTO testtable(Name,OtherID,Number) VALUES ("Some Name",4,587.6594);';
+//  //do the insert
+//  sldb.ExecSQL(sSQL);
+//  sSQL := 'INSERT INTO testtable(Name,OtherID,Number,Notes) VALUES ("Another Name",12,4758.3265,"More notes");';
+//  //do the insert
+//  sldb.ExecSQL(sSQL);
+//  //end the transaction
+//  sldb.Commit;
+//  //add the notes using a parameter
+//  ts := TStringStream.Create('Here are some notes with a unicode smiley: ' + char($263a),TEncoding.UTF8);
+//    try
+//    //insert the text into the db
+//    sldb.UpdateBlob('UPDATE testtable set notes = ? WHERE OtherID = 4',ts);
+//    finally
+//      ts.Free;
+//    end;
+//  if sltb<> nil then
+//  sltb.Free;
+//  //query the data
+//  sltb := slDb.GetTable('SELECT * FROM testtable');
+//  if sltb.Count > 0 then
+//  begin
+//    //display first row
+//    updateFields;
+//  end;
+//  finally
+//  sldb.Free;
+//  end;
 end;
 
 procedure TFormMain.UpdateFields;
-var
-Notes: string;
+//var
+//Notes: string;
 begin
-ebName.Text := sltb.FieldAsString(sltb.FieldIndex['Name']);
-ebID.Text := inttostr(sltb.FieldAsInteger(sltb.FieldIndex['ID']));
-ebNumber.Text := floattostr( sltb.FieldAsDouble(sltb.FieldIndex['Number']));
-Notes :=  sltb.FieldAsBlobText(sltb.FieldIndex['Notes']);
-memNotes.Text := notes;
-updateImage;
+//ebName.Text := sltb.FieldAsString(sltb.FieldIndex['Name']);
+//ebID.Text := inttostr(sltb.FieldAsInteger(sltb.FieldIndex['ID']));
+//ebNumber.Text := floattostr( sltb.FieldAsDouble(sltb.FieldIndex['Number']));
+//Notes :=  sltb.FieldAsBlobText(sltb.FieldIndex['Notes']);
+//memNotes.Text := notes;
+//updateImage;
 end;
 
 procedure TFormMain.UpdateImage;
-var
-ms: TMemoryStream;
-pic: TJPegImage;
-sldb: TSqliteDatabase;
-sltbU: TSqliteUniTable;
-slDBPath: string;
-iID: integer;
+//var
+//ms: TMemoryStream;
+//pic: TJPegImage;
+//sldb: TSqliteDatabase;
+//sltbU: TSqliteUniTable;
+//slDBPath: string;
+//iID: integer;
 begin
-  if sltb = nil then exit;
-  self.Image1.Picture.Graphic := nil;
-  slDBPath := ExtractFilepath(application.exename) + 'test.db';
-  if not FileExists(slDBPath) then exit;
-  sldb := TSQLiteDatabase.Create(slDBPath);
-  try
-    iID := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
-    sltbU := sldb.GetUniTable('SELECT picture FROM testtable where ID = ' + inttostr(iID));
-    try
-      ms := sltbU.FieldAsBlob(sltbU.FieldIndex['picture']);
-      if (ms = nil) then exit;
-      try
-        ms.Position := 0;
-        pic := TJPEGImage.Create;
-        pic.LoadFromStream(ms);
-        self.Image1.Picture.Graphic := pic;
-        pic.Free;
-      finally
-        ms.Free;
-      end;
-    finally
-      sltbU.Free;
-    end;
-  finally
-  sldb.Free;
-  end;
+//  if sltb = nil then exit;
+//  self.Image1.Picture.Graphic := nil;
+//  slDBPath := ExtractFilepath(application.exename) + 'test.db';
+//  if not FileExists(slDBPath) then exit;
+//  sldb := TSQLiteDatabase.Create(slDBPath);
+//  try
+//    iID := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
+//    sltbU := sldb.GetUniTable('SELECT picture FROM testtable where ID = ' + inttostr(iID));
+//    try
+//      ms := sltbU.FieldAsBlob(sltbU.FieldIndex['picture']);
+//      if (ms = nil) then exit;
+//      try
+//        ms.Position := 0;
+//        pic := TJPEGImage.Create;
+//        pic.LoadFromStream(ms);
+//        self.Image1.Picture.Graphic := pic;
+//        pic.Free;
+//      finally
+//        ms.Free;
+//      end;
+//    finally
+//      sltbU.Free;
+//    end;
+//  finally
+//  sldb.Free;
+//  end;
 end;
 
 function TFormMain.CaseNumber(k: integer): string;
@@ -463,9 +462,91 @@ try
   end;
 end;
 
-procedure TFormMain.CopySQLiteToXLS(FileName: string; Lines: integer);
+procedure TFormMain.CopySQLiteToXLS(FileName: string);
+var i, LineNumber:integer;
+str:string;
+ExcelOut:Variant;
+S3DB:TSQLiteDatabase;
+STBL: TSQLIteTable;
 begin
-
+PB.StepIt;
+try
+    try
+    ExcelOut := GetActiveOleObject('Excel.Application');
+    except
+    on EOLESysError do
+      ExcelOut := CreateOleObject('Excel.Application');
+    end;
+    ExcelOut.Visible := False;
+    ExcelOut.WindowState := -4140;
+    ExcelOut.DisplayAlerts := False;
+    ExcelOut.WorkBooks.Add;
+    ExcelOut.WorkSheets[1].Activate;
+    ExcelOut.WorkBooks[1].WorkSheets[1].Name:='Export Products Sheet';
+    S3DB := TSQLiteDatabase.Create(DBName);
+    STBL := S3DB.GetTable('SELECT * FROM vw_Items');
+    MemoLog.Lines.Add(IntToStr(STBL.Count)+' строк экспортируем в XLS');
+    for i:=1 to length(PromExpandHeader) do ExcelOut.WorkBooks[1].WorkSheets[1].Cells[1,i].Value:=PromExpandHeader[i];
+    LineNumber:=1;
+    while not STBL.EOF do
+      begin
+      inc(LineNumber);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),1].Value:=STBL.FieldAsString(STBL.FieldIndex['Product_Code']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),2].Value:=STBL.FieldAsString(STBL.FieldIndex['Position_Name']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),3].Value:=STBL.FieldAsString(STBL.FieldIndex['Keywords']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),4].Value:=STBL.FieldAsString(STBL.FieldIndex['Description']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),5].Value:=STBL.FieldAsString(STBL.FieldIndex['Product_type']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),6].Value:=STBL.FieldAsString(STBL.FieldIndex['price']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),7].Value:=STBL.FieldAsString(STBL.FieldIndex['Currency']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),8].Value:=STBL.FieldAsString(STBL.FieldIndex['Unit_of_measurement']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),9].Value:=STBL.FieldAsString(STBL.FieldIndex['Minimum_size_Order']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),10].Value:=STBL.FieldAsString(STBL.FieldIndex['Wholesale_price']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),11].Value:=STBL.FieldAsString(STBL.FieldIndex['Min_Order_Opt']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),12].Value:=STBL.FieldAsString(STBL.FieldIndex['Image_Link']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),13].Value:=STBL.FieldAsString(STBL.FieldIndex['Availability']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),14].Value:=STBL.FieldAsString(STBL.FieldIndex['Amount']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),15].Value:=STBL.FieldAsString(STBL.FieldIndex['Group_number']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),16].Value:=STBL.FieldAsString(STBL.FieldIndex['Group_name']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),17].Value:=STBL.FieldAsString(STBL.FieldIndex['Division_Address']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),18].Value:=STBL.FieldAsString(STBL.FieldIndex['Possibility_of_delivery']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),19].Value:=STBL.FieldAsString(STBL.FieldIndex['Delivery_period']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),20].Value:=STBL.FieldAsString(STBL.FieldIndex['Packing_Mode']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),21].Value:=STBL.FieldAsString(STBL.FieldIndex['Unique_identificator']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),22].Value:=STBL.FieldAsString(STBL.FieldIndex['Product_id']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),23].Value:=STBL.FieldAsString(STBL.FieldIndex['Subdivision_id']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),24].Value:=STBL.FieldAsString(STBL.FieldIndex['Group_id']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),25].Value:=STBL.FieldAsString(STBL.FieldIndex['Manufacturer']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),26].Value:=STBL.FieldAsString(STBL.FieldIndex['Producing_country']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),27].Value:=STBL.FieldAsString(STBL.FieldIndex['Discount']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),28].Value:=STBL.FieldAsString(STBL.FieldIndex['Species_Group_ID']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),29].Value:=STBL.FieldAsString(STBL.FieldIndex['Tags']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),30].Value:=STBL.FieldAsString(STBL.FieldIndex['Product_on_Site']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),31].Value:=STBL.FieldAsString(STBL.FieldIndex['Name1_Characteristics']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),32].Value:=STBL.FieldAsString(STBL.FieldIndex['Measurement1_Characteristics']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),33].Value:=STBL.FieldAsString(STBL.FieldIndex['Value1_Characteristics']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),34].Value:=STBL.FieldAsString(STBL.FieldIndex['Name2_Characteristics']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),35].Value:=STBL.FieldAsString(STBL.FieldIndex['Measurement2_Characteristics']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),36].Value:=STBL.FieldAsString(STBL.FieldIndex['Value2_Characteristics']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),37].Value:=STBL.FieldAsString(STBL.FieldIndex['Name3_Characteristics']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),38].Value:=STBL.FieldAsString(STBL.FieldIndex['Measurement3_Characteristics']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),39].Value:=STBL.FieldAsString(STBL.FieldIndex['Value3_Characteristics']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),40].Value:=STBL.FieldAsString(STBL.FieldIndex['Name4_Characteristics']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),41].Value:=STBL.FieldAsString(STBL.FieldIndex['Measurement4_Characteristics']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),42].Value:=STBL.FieldAsString(STBL.FieldIndex['Value4_Characteristics']);
+      STBL.Next;
+      PB.StepIt;
+    end;
+    try
+     ExcelOut.WorkBooks[1].SaveAs(FileName);
+    except on E:EFCreateError do
+    MessageDlg('Прайс-лист '+FileName+' открыт в программе Excel, или сбой работы этой программы.'+chr(10)+chr(13)+' Закройте Excel либо перезагрузите компьютер', mtError, [mbOK],0);
+    end;
+  finally
+  ExcelOut.ActiveWorkbook.Close;
+  ExcelOut.Application.Quit;
+  STBL.Free;
+  S3DB.Free;
+  end;
 end;
 
 procedure TFormMain.BitBtnCSVClick(Sender: TObject);
@@ -505,7 +586,7 @@ if FileOpenDialog1.Execute then
     PB.Step:=1;
     PB.StepIt;
     MemoTxt.Clear;
-    MemoTxt.Lines.Add(WritePromHeaders);
+    //MemoTxt.Lines.Add(WritePromHeaders);
     LineNumber:=1;
     for I := 1 to 13 do
     begin
@@ -788,7 +869,7 @@ try
            and (length(PromExpandText[3])=0)and(length(PromExpandText[4])=0)
       then
         begin
-        MemoLog.Lines.Add('Найдена пустая строка');
+        //MemoLog.Lines.Add('Найдена пустая строка');
         IsEmptyLine:=true;
         Continue;
         end;
@@ -829,8 +910,8 @@ try
       ExcelIn.DisplayAlerts := False;
       ExcelIn.WorkBooks.Open(FileOpenDialog1.FileName, 0 , true);
       ExcelIn.WorkSheets[1].Activate;
-      MemoTxt.Clear;
-      MemoTxt.Lines.Add(WritePromHeaders);
+      //MemoTxt.Clear;
+      //MemoTxt.Lines.Add(WritePromHeaders);
       LineNumber:=1;
       PB.Position:=0;
       PB.Min:=1;
@@ -1111,13 +1192,13 @@ Flags:= [rfReplaceAll, rfIgnoreCase];
   end;
 end;
 
-procedure TFormMain.EmptySQLite(DName:string);
+procedure TFormMain.EmptySQLite;
 var
 strSQL: String;
 S3DB:TSQLiteDatabase;
 S3Tbl: TSQLIteTable;
 begin
-  S3DB := TSQLiteDatabase.Create(DName);
+  S3DB := TSQLiteDatabase.Create(DBName);
   try
   S3DB.BeginTransaction;
   strSQL := 'DELETE FROM Remontka_items;';
@@ -1158,13 +1239,13 @@ for I := 2 to 13 do
 
 end;
 
-function TFormMain.WritePromHeaders: string;
+function TFormMain.WritePromExpandHeaders: string;
 var i:integer;
 begin
-Result:=PromHeader[1];
-for I := 2 to 23 do
+Result:=PromExpandHeader[1];
+for I := 2 to length(PromExpandHeader) do
   begin
-    Result:=Result+FileSeparator+PromHeader[i];
+    Result:=Result+FileSeparator+PromExpandHeader[i];
   end;
 //Исправить позже. Неверно показывается последняя колонка для XLS
 Result:=Result+FileSeparator;
