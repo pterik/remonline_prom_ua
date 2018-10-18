@@ -865,7 +865,7 @@ try
         CellNum:=IntToStr(LineNumber);
         CellText:=trim(ExcelIn.Range[CellRow+CellNum]);
         RemontkaText[i]:=TrimSeparator(CellText);
-        if (i=1) and (length(RemontkaText[i])>0) then RemontkaText[i]:=''''+RemontkaText[i];
+        //if (i=1) and (length(RemontkaText[i])>0) then RemontkaText[i]:=''''+RemontkaText[i];
         if LineNumber>50000 then IsEmptyLine:=true;
         //¬ыходим если 50(00) строк чтобы не было зацикливани€
         end;
@@ -1065,8 +1065,8 @@ Flags:= [rfReplaceAll, rfIgnoreCase];
     +pPromArray[40]+'","'
     +pPromArray[41]
     +'");';
-  MemoLog.Lines.Add(strSQL);
-  //S3DB.ExecSQL(strSQL);
+  //MemoLog.Lines.Add(strSQL);
+  S3DB.ExecSQL(strSQL);
   S3DB.Commit;
   finally
   S3DB.Free;
