@@ -291,23 +291,33 @@ try
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),4].Value:=STBL.FieldAsString(STBL.FieldIndex['Description']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),5].Value:=STBL.FieldAsString(STBL.FieldIndex['Product_type']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),6].Value:=STBL.FieldAsString(STBL.FieldIndex['price']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),7].Value:=STBL.FieldAsString(STBL.FieldIndex['Currency']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),8].Value:=STBL.FieldAsString(STBL.FieldIndex['Unit_of_measurement']);
 
-      if (STBL.FieldAsDouble(STBL.FieldIndex['Minimum_size_Order'])>0.00001)
-        then Value:=STBL.FieldAsString(STBL.FieldIndex['Minimum_size_Order'])
-        else Value:='';
+      if (STBL.FieldAsString(STBL.FieldIndex['Currency'])='')
+        then Value:='UAH'
+        else Value:=STBL.FieldAsString(STBL.FieldIndex['Currency']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),7].Value:=Value;
+
+      if (STBL.FieldAsString(STBL.FieldIndex['Unit_of_measurement'])='')
+        then Value:='רע.'
+        else Value:=STBL.FieldAsString(STBL.FieldIndex['Unit_of_measurement']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),8].Value:=Value;
+
+      if STBL.FieldAsString(STBL.FieldIndex['Minimum_size_Order'])='' then Value:=''
+      else if (STBL.FieldAsDouble(STBL.FieldIndex['Minimum_size_Order'])>0.00001)
+            then Value:=STBL.FieldAsString(STBL.FieldIndex['Minimum_size_Order'])
+            else Value:='';
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),9].Value:=Value;
 
-      if (STBL.FieldAsDouble(STBL.FieldIndex['Wholesale_price'])>0.00001)
-      then ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),10].Value:=STBL.FieldAsString(STBL.FieldIndex['Wholesale_price'])
-      else ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),10].Value:=STBL.FieldAsString(STBL.FieldIndex['price']);
+      if (STBL.FieldAsString(STBL.FieldIndex['Wholesale_price'])='') then Value:=''
+      else if (STBL.FieldAsDouble(STBL.FieldIndex['Wholesale_price'])>0.00001)
+          then ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),10].Value:=STBL.FieldAsString(STBL.FieldIndex['Wholesale_price'])
+          else ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),10].Value:=STBL.FieldAsString(STBL.FieldIndex['price']);
 
-      if (STBL.FieldAsDouble(STBL.FieldIndex['Min_Order_Opt'])>0.00001)
-        then Value:=STBL.FieldAsString(STBL.FieldIndex['Min_Order_Opt'])
-        else Value:='''2';
+      if (STBL.FieldAsString(STBL.FieldIndex['Min_Order_Opt'])='') then Value :=''
+      else if (STBL.FieldAsDouble(STBL.FieldIndex['Min_Order_Opt'])>0.00001)
+          then Value:=STBL.FieldAsString(STBL.FieldIndex['Min_Order_Opt'])
+          else Value:='''2';
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),11].Value:=Value;
-
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),12].Value:=STBL.FieldAsString(STBL.FieldIndex['Image_Link']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),13].Value:=STBL.FieldAsString(STBL.FieldIndex['Availability']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),14].Value:=STBL.FieldAsString(STBL.FieldIndex['Amount']);
