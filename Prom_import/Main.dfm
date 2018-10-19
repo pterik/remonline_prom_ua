@@ -96,27 +96,16 @@ object FormMain: TFormMain
     Anchors = [akLeft, akRight, akBottom]
     TabOrder = 5
   end
-  object CheckBoxZeroPrice: TCheckBox
+  object CheckBox: TCheckBox
     Left = 288
-    Top = 526
-    Width = 353
-    Height = 17
+    Top = 506
+    Width = 345
+    Height = 26
     Anchors = [akLeft, akBottom]
-    Caption = #1059#1073#1088#1072#1090#1100' '#1082#1086#1084#1084#1077#1085#1090#1072#1088#1080#1081' '#1076#1083#1103' '#1090#1086#1074#1072#1088#1086#1074' '#1089' '#1085#1091#1083#1077#1074#1086#1081' '#1094#1077#1085#1086#1081
+    Caption = #1059#1073#1088#1072#1090#1100' '#1082#1086#1084#1084#1077#1085#1090#1072#1088#1080#1081' ('#1085#1091#1083#1077#1074#1099#1077' '#1094#1077#1085#1099' '#1080' '#1085#1091#1083#1077#1074#1086#1077' '#1082#1086#1083#1080#1095#1077#1089#1090#1074#1086')'
     Checked = True
     State = cbChecked
     TabOrder = 6
-  end
-  object CheckBoxZeroOstatki: TCheckBox
-    Left = 288
-    Top = 494
-    Width = 377
-    Height = 26
-    Anchors = [akLeft, akBottom]
-    Caption = #1059#1073#1088#1072#1090#1100' '#1082#1086#1084#1084#1077#1085#1090#1072#1088#1080#1081' '#1076#1083#1103' '#1086#1090#1089#1091#1090#1089#1090#1074#1091#1102#1097#1080#1093' ('#1085#1091#1083#1077#1074#1086#1077' '#1082#1086#1083#1080#1095#1077#1089#1090#1074#1086')'
-    Checked = True
-    State = cbChecked
-    TabOrder = 7
   end
   object FileOpenDialog1: TFileOpenDialog
     DefaultExtension = '*.xls'
