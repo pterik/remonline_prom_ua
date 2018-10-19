@@ -109,15 +109,16 @@ LineNumber:integer;
 Amount, I: Integer;
 begin
 MemoLog.Clear;
-if not FileOpenDialog1.Execute then exit;
+if not (FileOpenDialog1.Execute) then exit;
 EmptySQLite;
 FileName:=FileOpenDialog1.FileName;
 MemoLog.Lines.Add('Обрабатывается файл '+FileName);
 LoadRemontkaToSQLite;
 if LowerCase(ExtractFileExt(FileName))='.xls' then FileName:=LowerCase(FileName+'x');
 Pb.Position:=PB.Max div 2;
-MemoLog.Lines.Add('Остатки обработаны, выберите файл prom.ua для загрузки ');
+MemoLog.Lines.Add('Остатки обработаны, выберите файл prom.ua для загрузки. (С именем export*.xlsx)');
 if not FileOpenDialog2.Execute then exit;
+MemoLog.Lines.Add('Выбран файл для загрузки :'+FileOpenDialog2.FileName);
 LoadPromToSQLite;
 //CopyMemoToXLS(ExtractFilePath(FileName)+'prom_'+ExtractFileName(FileName), LineNumber);
 CopySQLiteToXLS(ExtractFilePath(FileName)+'DB_prom_'+ExtractFileName(FileName));
@@ -256,10 +257,11 @@ end;
 
 procedure TFormMain.CopySQLiteToXLS(FileName: string);
 var i, LineNumber:integer;
-str:string;
+str, Value:string;
 ExcelOut:Variant;
 S3DB:TSQLiteDatabase;
 STBL: TSQLIteTable;
+DValue:double;
 begin
 PB.StepIt;
 try
@@ -283,30 +285,42 @@ try
     while not STBL.EOF do
       begin
       inc(LineNumber);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),1].Value:=STBL.FieldAsString(STBL.FieldIndex['Product_Code']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),1].Value:=''''+STBL.FieldAsString(STBL.FieldIndex['Product_Code']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),2].Value:=STBL.FieldAsString(STBL.FieldIndex['Position_Name']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),3].Value:=STBL.FieldAsString(STBL.FieldIndex['Keywords']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),4].Value:=STBL.FieldAsString(STBL.FieldIndex['Description']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),5].Value:=STBL.FieldAsString(STBL.FieldIndex['Product_type']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),6].Value:=STBL.FieldAsDouble(STBL.FieldIndex['price']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),6].Value:=STBL.FieldAsString(STBL.FieldIndex['price']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),7].Value:=STBL.FieldAsString(STBL.FieldIndex['Currency']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),8].Value:=STBL.FieldAsString(STBL.FieldIndex['Unit_of_measurement']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),9].Value:=STBL.FieldAsDouble(STBL.FieldIndex['Minimum_size_Order']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),10].Value:=STBL.FieldAsDouble(STBL.FieldIndex['Wholesale_price']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),11].Value:=STBL.FieldAsDouble(STBL.FieldIndex['Min_Order_Opt']);
+
+      if (STBL.FieldAsDouble(STBL.FieldIndex['Minimum_size_Order'])>0.00001)
+        then Value:=STBL.FieldAsString(STBL.FieldIndex['Minimum_size_Order'])
+        else Value:='';
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),9].Value:=Value;
+
+      if (STBL.FieldAsDouble(STBL.FieldIndex['Wholesale_price'])>0.00001)
+      then ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),10].Value:=STBL.FieldAsString(STBL.FieldIndex['Wholesale_price'])
+      else ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),10].Value:=STBL.FieldAsString(STBL.FieldIndex['price']);
+
+      if (STBL.FieldAsDouble(STBL.FieldIndex['Min_Order_Opt'])>0.00001)
+        then Value:=STBL.FieldAsString(STBL.FieldIndex['Min_Order_Opt'])
+        else Value:='''2';
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),11].Value:=Value;
+
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),12].Value:=STBL.FieldAsString(STBL.FieldIndex['Image_Link']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),13].Value:=STBL.FieldAsString(STBL.FieldIndex['Availability']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),14].Value:=STBL.FieldAsDouble(STBL.FieldIndex['Amount']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),14].Value:=STBL.FieldAsString(STBL.FieldIndex['Amount']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),15].Value:=STBL.FieldAsString(STBL.FieldIndex['Group_number']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),16].Value:=STBL.FieldAsString(STBL.FieldIndex['Group_name']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),17].Value:=STBL.FieldAsString(STBL.FieldIndex['Division_Address']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),18].Value:=STBL.FieldAsString(STBL.FieldIndex['Possibility_of_delivery']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),19].Value:=STBL.FieldAsString(STBL.FieldIndex['Delivery_period']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),20].Value:=STBL.FieldAsString(STBL.FieldIndex['Packing_Mode']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),21].Value:=STBL.FieldAsInteger(STBL.FieldIndex['Unique_identificator']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),22].Value:=STBL.FieldAsInteger(STBL.FieldIndex['Product_id']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),23].Value:=STBL.FieldAsInteger(STBL.FieldIndex['Subdivision_id']);
-      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),24].Value:=STBL.FieldAsInteger(STBL.FieldIndex['Group_id']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),21].Value:=STBL.FieldAsString(STBL.FieldIndex['Unique_identificator']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),22].Value:=STBL.FieldAsString(STBL.FieldIndex['Product_id']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),23].Value:=STBL.FieldAsString(STBL.FieldIndex['Subdivision_id']);
+      ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),24].Value:=STBL.FieldAsString(STBL.FieldIndex['Group_id']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),25].Value:=STBL.FieldAsString(STBL.FieldIndex['Manufacturer']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),26].Value:=STBL.FieldAsString(STBL.FieldIndex['Producing_country']);
       ExcelOut.WorkBooks[1].WorkSheets[1].Cells[IntToStr(LineNumber),27].Value:=STBL.FieldAsString(STBL.FieldIndex['Discount']);
